@@ -1,0 +1,177 @@
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+version: '2'
+
+services:
+
+  orderer.logistics.com:
+    container_name: orderer.logistics.com
+    # extends:
+    #   file: peer-base.yaml
+    #   service: orderer-base
+    image: hyperledger/fabric-orderer:$IMAGE_TAG
+    environment:
+      - ORDERER_GENERAL_LOGLEVEL=INFO
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_GENESISMETHOD=file
+      - ORDERER_GENERAL_GENESISFILE=/var/hyperledger/orderer/orderer.genesis.block
+      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+      # enabled TLS
+      - ORDERER_GENERAL_TLS_ENABLED=true
+      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric
+    command: orderer
+    volumes:
+        - ../channel-artifacts/genesis.block:/var/hyperledger/orderer/orderer.genesis.block
+        - ../crypto-config/ordererOrganizations/logistics.com/orderers/orderer.logistics.com/msp:/var/hyperledger/orderer/msp
+        - ../crypto-config/ordererOrganizations/logistics.com/orderers/orderer.logistics.com/tls/:/var/hyperledger/orderer/tls
+        - orderer.logistics.com:/var/hyperledger/production/orderer
+    ports:
+      - 7050:7050
+
+  peer0.importerorg.logistics.com:
+    container_name: peer0.importerorg.logistics.com
+    extends:
+      file: peer-base.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer0.importerorg.logistics.com
+      - CORE_PEER_ADDRESS=peer0.importerorg.logistics.com:7051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.importerorg.logistics.com:7051
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.importerorg.logistics.com:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.importerorg.logistics.com:7051
+      - CORE_PEER_LOCALMSPID=ImporterOrgMSP
+    volumes:
+        - /var/run/:/host/var/run/
+        - ../crypto-config/peerOrganizations/importerorg.logistics.com/peers/peer0.importerorg.logistics.com/msp:/etc/hyperledger/fabric/msp
+        - ../crypto-config/peerOrganizations/importerorg.logistics.com/peers/peer0.importerorg.logistics.com/tls:/etc/hyperledger/fabric/tls
+        - peer0.importerorg.logistics.com:/var/hyperledger/production
+    ports:
+      - 7051:7051
+      - 7053:7053
+      - 7055:6060
+
+  # peer1.importerorg.logistics.com:
+  #   container_name: peer1.importerorg.logistics.com
+  #   extends:
+  #     file: peer-base.yaml
+  #     service: peer-base
+  #   environment:
+  #     - CORE_PEER_ID=peer1.importerorg.logistics.com
+  #     - CORE_PEER_ADDRESS=peer1.importerorg.logistics.com:8051
+  #     - CORE_PEER_LISTENADDRESS=0.0.0.0:8051
+  #     - CORE_PEER_CHAINCODEADDRESS=peer1.importerorg.logistics.com:8052
+  #     - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:8052
+  #     - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.importerorg.logistics.com:8051
+  #     - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.importerorg.logistics.com:7051
+  #     - CORE_PEER_LOCALMSPID=importerorgMSP
+  #   volumes:
+  #       - /var/run/:/host/var/run/
+  #       - ../crypto-config/peerOrganizations/importerorg.logistics.com/peers/peer1.importerorg.logistics.com/msp:/etc/hyperledger/fabric/msp
+  #       - ../crypto-config/peerOrganizations/importerorg.logistics.com/peers/peer1.importerorg.logistics.com/tls:/etc/hyperledger/fabric/tls
+  #       - peer1.importerorg.logistics.com:/var/hyperledger/production
+
+  #   ports:
+  #     - 8051:8051
+
+  peer0.exporterorg.logistics.com:
+    container_name: peer0.exporterorg.logistics.com
+    extends:
+      file: peer-base.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer0.exporterorg.logistics.com
+      - CORE_PEER_ADDRESS=peer0.exporterorg.logistics.com:7051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.exporterorg.logistics.com:7051
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.exporterorg.logistics.com:7051
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.exporterorg.logistics.com:7051
+      - CORE_PEER_LOCALMSPID=ExporterOrgMSP
+    volumes:
+        - /var/run/:/host/var/run/
+        - ../crypto-config/peerOrganizations/exporterorg.logistics.com/peers/peer0.exporterorg.logistics.com/msp:/etc/hyperledger/fabric/msp
+        - ../crypto-config/peerOrganizations/exporterorg.logistics.com/peers/peer0.exporterorg.logistics.com/tls:/etc/hyperledger/fabric/tls
+        - peer0.exporterorg.logistics.com:/var/hyperledger/production
+    ports:
+      - 8051:7051
+      - 8053:7053
+      - 8055:6060
+
+  # peer1.exporterorg.logistics.com:
+  #   container_name: peer1.exporterorg.logistics.com
+  #   extends:
+  #     file: peer-base.yaml
+  #     service: peer-base
+  #   environment:
+  #     - CORE_PEER_ID=peer1.exporterorg.logistics.com
+  #     - CORE_PEER_ADDRESS=peer1.exporterorg.logistics.com:10051
+  #     - CORE_PEER_LISTENADDRESS=0.0.0.0:10051
+  #     - CORE_PEER_CHAINCODEADDRESS=peer1.exporterorg.logistics.com:10052
+  #     - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:10052
+  #     - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.exporterorg.logistics.com:10051
+  #     - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.exporterorg.logistics.com:9051
+  #     - CORE_PEER_LOCALMSPID=exporterorgMSP
+  #   volumes:
+  #       - /var/run/:/host/var/run/
+  #       - ../crypto-config/peerOrganizations/exporterorg.logistics.com/peers/peer1.exporterorg.logistics.com/msp:/etc/hyperledger/fabric/msp
+  #       - ../crypto-config/peerOrganizations/exporterorg.logistics.com/peers/peer1.exporterorg.logistics.com/tls:/etc/hyperledger/fabric/tls
+  #       - peer1.exporterorg.logistics.com:/var/hyperledger/production
+  #   ports:
+  #     - 10051:10051
+
+  peer0.carrierorg.logistics.com:
+    container_name: peer0.carrierorg.logistics.com
+    extends:
+      file: peer-base.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer0.carrierorg.logistics.com
+      - CORE_PEER_ADDRESS=peer0.carrierorg.logistics.com:7051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.carrierorg.logistics.com:7051
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.carrierorg.logistics.com:7051
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.carrierorg.logistics.com:7051
+      - CORE_PEER_LOCALMSPID=CarrierOrgMSP
+    volumes:
+        - /var/run/:/host/var/run/
+        - ../crypto-config/peerOrganizations/carrierorg.logistics.com/peers/peer0.carrierorg.logistics.com/msp:/etc/hyperledger/fabric/msp
+        - ../crypto-config/peerOrganizations/carrierorg.logistics.com/peers/peer0.carrierorg.logistics.com/tls:/etc/hyperledger/fabric/tls
+        - peer0.carrierorg.logistics.com:/var/hyperledger/production
+    ports:
+      - 9051:7051
+      - 9053:7053
+      - 9055:6060
+
+  peer0.regulatororg.logistics.com:
+    container_name: peer0.regulatororg.logistics.com
+    extends:
+      file: peer-base.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer0.regulatororg.logistics.com
+      - CORE_PEER_ADDRESS=peer0.regulatororg.logistics.com:7051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.regulatororg.logistics.com:7051
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.regulatororg.logistics.com:7051
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.regulatororg.logistics.com:7051
+      - CORE_PEER_LOCALMSPID=regulatororgMSP
+    volumes:
+        - /var/run/:/host/var/run/
+        - ../crypto-config/peerOrganizations/regulatororg.logistics.com/peers/peer0.regulatororg.logistics.com/msp:/etc/hyperledger/fabric/msp
+        - ../crypto-config/peerOrganizations/regulatororg.logistics.com/peers/peer0.regulatororg.logistics.com/tls:/etc/hyperledger/fabric/tls
+        - peer0.regulatororg.logistics.com:/var/hyperledger/production
+    ports:
+      - 10051:7051
+      - 10053:7053
+      - 10055:6060

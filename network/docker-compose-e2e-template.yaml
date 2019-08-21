@@ -1,0 +1,160 @@
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+version: '2'
+
+volumes:
+  orderer.logistics.com:
+  peer0.importerorg.logistics.com:
+  # peer1.importerorg.logistics.com:
+  peer0.exporterorg.logistics.com:
+  # peer1.exporterorg.logistics.com:
+  peer0.carrierorg.logistics.com:
+  # peer1.carrierorg.logistics.com:
+  peer0.regulatororg.logistics.com:
+  # peer1.regulatororg.logistics.com:
+
+networks:
+  logistics:
+services:
+  ca0:
+    image: hyperledger/fabric-ca:$IMAGE_TAG
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-importerorg
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.importerorg.logistics.com-cert.pem
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/CA1_PRIVATE_KEY
+    ports:
+      - "7054:7054"
+    command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.importerorg.logistics.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/CA1_PRIVATE_KEY -b admin:adminpw -d'
+    volumes:
+      - ./crypto-config/peerOrganizations/importerorg.logistics.com/ca/:/etc/hyperledger/fabric-ca-server-config
+    container_name: ca_peerImporterOrg
+    networks:
+      - logistics
+
+  ca1:
+    image: hyperledger/fabric-ca:$IMAGE_TAG
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-exporterorg
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.exporterorg.logistics.com-cert.pem
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/CA2_PRIVATE_KEY
+    ports:
+      - "8054:7054"
+    command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.exporterorg.logistics.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/CA2_PRIVATE_KEY -b admin:adminpw -d'
+    volumes:
+      - ./crypto-config/peerOrganizations/exporterorg.logistics.com/ca/:/etc/hyperledger/fabric-ca-server-config
+    container_name: ca_peerExporterOrg
+    networks:
+      - logistics
+
+  ca2:
+    image: hyperledger/fabric-ca:$IMAGE_TAG
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-carrierorg
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.carrierorg.logistics.com-cert.pem
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/CA3_PRIVATE_KEY
+    ports:
+      - "9054:7054"
+    command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.carrierorg.logistics.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/CA3_PRIVATE_KEY -b admin:adminpw -d'
+    volumes:
+      - ./crypto-config/peerOrganizations/carrierorg.logistics.com/ca/:/etc/hyperledger/fabric-ca-server-config
+    container_name: ca_peerCarrierOrg
+    networks:
+      - logistics
+
+  ca3:
+    image: hyperledger/fabric-ca:$IMAGE_TAG
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-regulatororg
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.regulatororg.logistics.com-cert.pem
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/CA4_PRIVATE_KEY
+    ports:
+      - "10054:7054"
+    command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.regulatororg.logistics.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/CA4_PRIVATE_KEY -b admin:adminpw -d'
+    volumes:
+      - ./crypto-config/peerOrganizations/regulatororg.logistics.com/ca/:/etc/hyperledger/fabric-ca-server-config
+    container_name: ca_peerRegulatorOrg
+    networks:
+      - logistics
+
+  orderer.logistics.com:
+    extends:
+      file:   base/docker-compose-base.yaml
+      service: orderer.logistics.com
+    container_name: orderer.logistics.com
+    networks:
+      - logistics
+
+  peer0.importerorg.logistics.com:
+    container_name: peer0.importerorg.logistics.com
+    extends:
+      file:  base/docker-compose-base.yaml
+      service: peer0.importerorg.logistics.com
+    networks:
+      - logistics
+
+  # peer1.importerorg.logistics.com:
+  #   container_name: peer1.importerorg.logistics.com
+  #   extends:
+  #     file:  base/docker-compose-base.yaml
+  #     service: peer1.importerorg.logistics.com
+  #   networks:
+  #     - logistics
+
+  peer0.exporterorg.logistics.com:
+    container_name: peer0.exporterorg.logistics.com
+    extends:
+      file:  base/docker-compose-base.yaml
+      service: peer0.exporterorg.logistics.com
+    networks:
+      - logistics
+
+  # peer1.exporterorg.logistics.com:
+  #   container_name: peer1.exporterorg.logistics.com
+  #   extends:
+  #     file:  base/docker-compose-base.yaml
+  #     service: peer1.exporterorg.logistics.com
+  #   networks:
+  #     - logistics
+
+  peer0.carrierorg.logistics.com:
+    container_name: peer0.carrierorg.logistics.com
+    extends:
+      file:  base/docker-compose-base.yaml
+      service: peer0.carrierorg.logistics.com
+    networks:
+      - logistics
+
+  # peer1.carrierorg.logistics.com:
+  #   container_name: peer1.carrierorg.logistics.com
+  #   extends:
+  #     file:  base/docker-compose-base.yaml
+  #     service: peer1.carrierorg.logistics.com
+  #   networks:
+  #     - logistics
+
+  peer0.regulatororg.logistics.com:
+    container_name: peer0.regulatororg.logistics.com
+    extends:
+      file:  base/docker-compose-base.yaml
+      service: peer0.regulatororg.logistics.com
+    networks:
+      - logistics
+
+  # peer1.regulatororg.logistics.com:
+  #   container_name: peer1.regulatororg.logistics.com
+  #   extends:
+  #     file:  base/docker-compose-base.yaml
+  #     service: peer1.regulatororg.logistics.com
+  #   networks:
+  #     - logistics
