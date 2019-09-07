@@ -1,86 +1,93 @@
-# Copyright IBM Corp. All Rights Reserved.
 #
-# SPDX-License-Identifier: Apache-2.0
+# Copyright 2018 IBM All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #
 
 version: '2'
 
 volumes:
   orderer.logistics.com:
-  peer0.importerorg.logistics.com:
-  # peer1.importerorg.logistics.com:
   peer0.exporterorg.logistics.com:
-  # peer1.exporterorg.logistics.com:
+  peer0.importerorg.logistics.com:
   peer0.carrierorg.logistics.com:
-  # peer1.carrierorg.logistics.com:
   peer0.regulatororg.logistics.com:
-  # peer1.regulatororg.logistics.com:
 
 networks:
   logistics:
 services:
-  ca0:
-    image: hyperledger/fabric-ca:$IMAGE_TAG
-    environment:
-      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
-      - FABRIC_CA_SERVER_CA_NAME=ca-importerorg
-      - FABRIC_CA_SERVER_TLS_ENABLED=true
-      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.importerorg.logistics.com-cert.pem
-      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/CA1_PRIVATE_KEY
-    ports:
-      - "7054:7054"
-    command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.importerorg.logistics.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/CA1_PRIVATE_KEY -b admin:adminpw -d'
-    volumes:
-      - ./crypto-config/peerOrganizations/importerorg.logistics.com/ca/:/etc/hyperledger/fabric-ca-server-config
-    container_name: ca_peerImporterOrg
-    networks:
-      - logistics
-
-  ca1:
+  exporter-ca:
     image: hyperledger/fabric-ca:$IMAGE_TAG
     environment:
       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
       - FABRIC_CA_SERVER_CA_NAME=ca-exporterorg
       - FABRIC_CA_SERVER_TLS_ENABLED=true
       - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.exporterorg.logistics.com-cert.pem
-      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/CA2_PRIVATE_KEY
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/EXPORTER_CA_PRIVATE_KEY
     ports:
-      - "8054:7054"
-    command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.exporterorg.logistics.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/CA2_PRIVATE_KEY -b admin:adminpw -d'
+      - "7054:7054"
+    command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.exporterorg.logistics.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/EXPORTER_CA_PRIVATE_KEY -b admin:adminpw -d'
     volumes:
       - ./crypto-config/peerOrganizations/exporterorg.logistics.com/ca/:/etc/hyperledger/fabric-ca-server-config
     container_name: ca_peerExporterOrg
     networks:
       - logistics
 
-  ca2:
+  importer-ca:
+    image: hyperledger/fabric-ca:$IMAGE_TAG
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-importerorg
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.importerorg.logistics.com-cert.pem
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/IMPORTER_CA_PRIVATE_KEY
+    ports:
+      - "8054:7054"
+    command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.importerorg.logistics.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/IMPORTER_CA_PRIVATE_KEY -b admin:adminpw -d'
+    volumes:
+      - ./crypto-config/peerOrganizations/importerorg.logistics.com/ca/:/etc/hyperledger/fabric-ca-server-config
+    container_name: ca_peerImporterOrg
+    networks:
+      - logistics
+
+  carrier-ca:
     image: hyperledger/fabric-ca:$IMAGE_TAG
     environment:
       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
       - FABRIC_CA_SERVER_CA_NAME=ca-carrierorg
       - FABRIC_CA_SERVER_TLS_ENABLED=true
       - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.carrierorg.logistics.com-cert.pem
-      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/CA3_PRIVATE_KEY
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/CARRIER_CA_PRIVATE_KEY
     ports:
       - "9054:7054"
-    command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.carrierorg.logistics.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/CA3_PRIVATE_KEY -b admin:adminpw -d'
+    command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.carrierorg.logistics.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/CARRIER_CA_PRIVATE_KEY -b admin:adminpw -d'
     volumes:
       - ./crypto-config/peerOrganizations/carrierorg.logistics.com/ca/:/etc/hyperledger/fabric-ca-server-config
     container_name: ca_peerCarrierOrg
     networks:
       - logistics
 
-  ca3:
+  regulator-ca:
     image: hyperledger/fabric-ca:$IMAGE_TAG
     environment:
       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
       - FABRIC_CA_SERVER_CA_NAME=ca-regulatororg
       - FABRIC_CA_SERVER_TLS_ENABLED=true
       - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.regulatororg.logistics.com-cert.pem
-      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/CA4_PRIVATE_KEY
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/REGULATOR_CA_PRIVATE_KEY
     ports:
       - "10054:7054"
-    command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.regulatororg.logistics.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/CA4_PRIVATE_KEY -b admin:adminpw -d'
+    command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.regulatororg.logistics.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/REGULATOR_CA_PRIVATE_KEY -b admin:adminpw -d'
     volumes:
       - ./crypto-config/peerOrganizations/regulatororg.logistics.com/ca/:/etc/hyperledger/fabric-ca-server-config
     container_name: ca_peerRegulatorOrg
@@ -95,22 +102,6 @@ services:
     networks:
       - logistics
 
-  peer0.importerorg.logistics.com:
-    container_name: peer0.importerorg.logistics.com
-    extends:
-      file:  base/docker-compose-base.yaml
-      service: peer0.importerorg.logistics.com
-    networks:
-      - logistics
-
-  # peer1.importerorg.logistics.com:
-  #   container_name: peer1.importerorg.logistics.com
-  #   extends:
-  #     file:  base/docker-compose-base.yaml
-  #     service: peer1.importerorg.logistics.com
-  #   networks:
-  #     - logistics
-
   peer0.exporterorg.logistics.com:
     container_name: peer0.exporterorg.logistics.com
     extends:
@@ -119,13 +110,13 @@ services:
     networks:
       - logistics
 
-  # peer1.exporterorg.logistics.com:
-  #   container_name: peer1.exporterorg.logistics.com
-  #   extends:
-  #     file:  base/docker-compose-base.yaml
-  #     service: peer1.exporterorg.logistics.com
-  #   networks:
-  #     - logistics
+  peer0.importerorg.logistics.com:
+    container_name: peer0.importerorg.logistics.com
+    extends:
+      file:  base/docker-compose-base.yaml
+      service: peer0.importerorg.logistics.com
+    networks:
+      - logistics
 
   peer0.carrierorg.logistics.com:
     container_name: peer0.carrierorg.logistics.com
@@ -135,14 +126,6 @@ services:
     networks:
       - logistics
 
-  # peer1.carrierorg.logistics.com:
-  #   container_name: peer1.carrierorg.logistics.com
-  #   extends:
-  #     file:  base/docker-compose-base.yaml
-  #     service: peer1.carrierorg.logistics.com
-  #   networks:
-  #     - logistics
-
   peer0.regulatororg.logistics.com:
     container_name: peer0.regulatororg.logistics.com
     extends:
@@ -150,11 +133,3 @@ services:
       service: peer0.regulatororg.logistics.com
     networks:
       - logistics
-
-  # peer1.regulatororg.logistics.com:
-  #   container_name: peer1.regulatororg.logistics.com
-  #   extends:
-  #     file:  base/docker-compose-base.yaml
-  #     service: peer1.regulatororg.logistics.com
-  #   networks:
-  #     - logistics

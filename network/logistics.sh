@@ -1,8 +1,18 @@
 #!/bin/bash
 #
-# Copyright IBM Corp All Rights Reserved
+# Copyright 2018 IBM All Rights Reserved.
 #
-# SPDX-License-Identifier: Apache-2.0
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #
 
 # This script will orchestrate a sample end-to-end execution of the Hyperledger
@@ -28,42 +38,39 @@
 
 # prepending $PWD/../bin to PATH to ensure we are picking up the correct binaries
 # this may be commented out to resolve installed version of tools if desired
+
 export PATH=${PWD}/../bin:${PWD}:$PATH
 export FABRIC_CFG_PATH=${PWD}
-export VERBOSE=false
+
+# By default we standup a full network.
+DEV_MODE=false
 
 # Print the usage message
-function printHelp() {
+function printHelp () {
   echo "Usage: "
-  echo "  logistics.sh <mode> [-c <channel name>] [-t <timeout>] [-d <delay>] [-f <docker-compose-file>] [-s <dbtype>] [-l <language>] [-o <consensus-type>] [-i <imagetag>] [-a] [-n] [-v]"
-  echo "    <mode> - one of 'up', 'down', 'restart', 'generate' or 'upgrade'"
+  echo "  logistics.sh up|down|restart|generate|reset|clean|upgrade|createneworg|startneworg|stopneworg [-c <channel name>] [-f <docker-compose-file>] [-i <imagetag>] [-o <logfile>] [-dev]"
+  echo "  logistics.sh -h|--help (print this message)"
+  echo "    <mode> - one of 'up', 'down', 'restart' or 'generate'"
   echo "      - 'up' - bring up the network with docker-compose up"
   echo "      - 'down' - clear the network with docker-compose down"
   echo "      - 'restart' - restart the network"
   echo "      - 'generate' - generate required certificates and genesis block"
-  echo "      - 'upgrade'  - upgrade the network from version 1.3.x to 1.4.0"
-  echo "    -c <channel name> - channel name to use (defaults to \"mychannel\")"
-  echo "    -t <timeout> - CLI timeout duration in seconds (defaults to 10)"
-  echo "    -d <delay> - delay duration in seconds (defaults to 3)"
-  echo "    -f <docker-compose-file> - specify which docker-compose file use (defaults to docker-compose-cli.yaml)"
-  echo "    -s <dbtype> - the database backend to use: goleveldb (default) or couchdb"
-  echo "    -l <language> - the chaincode language: golang (default) or node"
-  echo "    -o <consensus-type> - the consensus-type of the ordering service: solo (default), kafka, or etcdraft"
+  echo "      - 'reset' - delete chaincode containers while keeping network artifacts" 
+  echo "      - 'clean' - delete network artifacts" 
+  echo "      - 'upgrade'  - upgrade the network from v1.0.x to v1.1"
+  echo "    -c <channel name> - channel name to use (defaults to \"logisticschannel\")"
+  echo "    -f <docker-compose-file> - specify which docker-compose file use (defaults to docker-compose-e2e.yaml)"
   echo "    -i <imagetag> - the tag to be used to launch the network (defaults to \"latest\")"
-  echo "    -a - launch certificate authorities (no certificate authorities are launched by default)"
-  echo "    -n - do not deploy chaincode (abstore chaincode is deployed by default)"
-  echo "    -v - verbose mode"
-  echo "  logistics.sh -h (print this message)"
+  echo "    -d - Apply command to the network in dev mode."
   echo
   echo "Typically, one would first generate the required certificates and "
   echo "genesis block, then bring up the network. e.g.:"
   echo
-  echo "	logistics.sh generate -c mychannel"
-  echo "	logistics.sh up -c mychannel -s couchdb"
-  echo "        logistics.sh up -c mychannel -s couchdb -i 1.4.0"
-  echo "	logistics.sh up -l node"
-  echo "	logistics.sh down -c mychannel"
-  echo "        logistics.sh upgrade -c mychannel"
+  echo "	logistics.sh generate -c logisticschannel"
+  echo "	logistics.sh up -c logisticschannel -o logs/network.log"
+  echo "        logistics.sh up -c logisticschannel -i 1.1.0-alpha"
+  echo "	logistics.sh down -c logisticschannel"
+  echo "        logistics.sh upgrade -c logisticschannel"
   echo
   echo "Taking all defaults:"
   echo "	logistics.sh generate"
@@ -71,28 +78,39 @@ function printHelp() {
   echo "	logistics.sh down"
 }
 
+# Keeps pushd silent
+pushd () {
+    command pushd "$@" > /dev/null
+}
+
+# Keeps popd silent
+popd () {
+    command popd "$@" > /dev/null
+}
+
 # Ask user for confirmation to proceed
-function askProceed() {
-  read -p "Continue? [Y/n] " ans
-  case "$ans" in
-  y | Y | "")
-    echo "proceeding ..."
-    ;;
-  n | N)
-    echo "exiting..."
-    exit 1
-    ;;
-  *)
-    echo "invalid response"
-    askProceed
-    ;;
-  esac
+function askProceed () {
+  # read -p "Continue? [Y/n] " ans
+  # case "$ans" in
+  #   y|Y|"" )
+  #     echo "proceeding ..."
+  #   ;;
+  #   n|N )
+  #     echo "exiting..."
+  #     exit 1
+  #   ;;
+  #   * )
+  #     echo "invalid response"
+  #     askProceed
+  #   ;;
+  # esac
+  echo "hihi"
 }
 
 # Obtain CONTAINER_IDS and remove them
 # TODO Might want to make this optional - could clear other containers
-function clearContainers() {
-  CONTAINER_IDS=$(docker ps -a | awk '($2 ~ /dev-peer.*.mycc.*/) {print $1}')
+function clearContainers () {
+  CONTAINER_IDS=$(docker ps -aq)
   if [ -z "$CONTAINER_IDS" -o "$CONTAINER_IDS" == " " ]; then
     echo "---- No containers available for deletion ----"
   else
@@ -104,16 +122,13 @@ function clearContainers() {
 # specifically the following images are often left behind:
 # TODO list generated image naming patterns
 function removeUnwantedImages() {
-  DOCKER_IMAGE_IDS=$(docker images | awk '($1 ~ /dev-peer.*.mycc.*/) {print $3}')
+  DOCKER_IMAGE_IDS=$(docker images | grep "dev\|none\|test-vp\|peer[0-9]-" | awk '{print $3}')
   if [ -z "$DOCKER_IMAGE_IDS" -o "$DOCKER_IMAGE_IDS" == " " ]; then
     echo "---- No images available for deletion ----"
   else
     docker rmi -f $DOCKER_IMAGE_IDS
   fi
 }
-
-# Versions of fabric known not to work with this release of first-network
-BLACKLISTED_VERSIONS="^1\.0\. ^1\.1\.0-preview ^1\.1\.0-alpha"
 
 # Do some basic sanity checking to make sure that the appropriate versions of fabric
 # binaries/images are available.  In the future, additional checking for the presence
@@ -122,163 +137,131 @@ function checkPrereqs() {
   # Note, we check configtxlator externally because it does not require a config file, and peer in the
   # docker image because of FAB-8551 that makes configtxlator return 'development version' in docker
   LOCAL_VERSION=$(configtxlator version | sed -ne 's/ Version: //p')
-  DOCKER_IMAGE_VERSION=$(docker run --rm hyperledger/fabric-tools:$IMAGETAG peer version | sed -ne 's/ Version: //p' | head -1)
+  DOCKER_IMAGE_VERSION=$(docker run --rm hyperledger/fabric-tools:$IMAGETAG peer version | sed -ne 's/ Version: //p'|head -1)
 
   echo "LOCAL_VERSION=$LOCAL_VERSION"
   echo "DOCKER_IMAGE_VERSION=$DOCKER_IMAGE_VERSION"
 
-  if [ "$LOCAL_VERSION" != "$DOCKER_IMAGE_VERSION" ]; then
-    echo "=================== WARNING ==================="
-    echo "  Local fabric binaries and docker images are  "
-    echo "  out of  sync. This may cause problems.       "
-    echo "==============================================="
+  if [ "$LOCAL_VERSION" != "$DOCKER_IMAGE_VERSION" ] ; then
+     echo "=================== WARNING ==================="
+     echo "  Local fabric binaries and docker images are  "
+     echo "  out of  sync. This may cause problems.       "
+     echo "==============================================="
   fi
-
-  for UNSUPPORTED_VERSION in $BLACKLISTED_VERSIONS; do
-    echo "$LOCAL_VERSION" | grep -q $UNSUPPORTED_VERSION
-    if [ $? -eq 0 ]; then
-      echo "ERROR! Local Fabric binary version of $LOCAL_VERSION does not match this newer version of BYFN and is unsupported. Either move to a later version of Fabric or checkout an earlier version of fabric-samples."
-      exit 1
-    fi
-
-    echo "$DOCKER_IMAGE_VERSION" | grep -q $UNSUPPORTED_VERSION
-    if [ $? -eq 0 ]; then
-      echo "ERROR! Fabric Docker image version of $DOCKER_IMAGE_VERSION does not match this newer version of BYFN and is unsupported. Either move to a later version of Fabric or checkout an earlier version of fabric-samples."
-      exit 1
-    fi
-  done
 }
 
 # Generate the needed certificates, the genesis block and start the network.
-function networkUp() {
+function networkUp () {
   checkPrereqs
+  # If we are in dev mode, we move to the devmode directory
+  if [ "$DEV_MODE" = true ] ; then
+     pushd ./devmode
+     export FABRIC_CFG_PATH=${PWD}
+  fi
   # generate artifacts if they don't exist
   if [ ! -d "crypto-config" ]; then
     generateCerts
     replacePrivateKey
     generateChannelArtifacts
   fi
-  # COMPOSE_FILES="-f ${COMPOSE_FILE}"
-  # if [ "${CERTIFICATE_AUTHORITIES}" == "true" ]; then
-  #   COMPOSE_FILES="${COMPOSE_FILES} -f ${COMPOSE_FILE_CA}"
-  #   export BYFN_CA1_PRIVATE_KEY=$(cd crypto-config/peerOrganizations/org1.logistics.com/ca && ls *_sk)
-  #   export BYFN_CA2_PRIVATE_KEY=$(cd crypto-config/peerOrganizations/org2.logistics.com/ca && ls *_sk)
+  # Create folder for docker network logs
+  # LOG_DIR=$(dirname $LOG_FILE)
+  # if [ ! -d $LOG_DIR ]
+  # then
+  #   mkdir -p $LOG_DIR
   # fi
-  # if [ "${CONSENSUS_TYPE}" == "kafka" ]; then
-  #   COMPOSE_FILES="${COMPOSE_FILES} -f ${COMPOSE_FILE_KAFKA}"
-  # elif [ "${CONSENSUS_TYPE}" == "etcdraft" ]; then
-  #   COMPOSE_FILES="${COMPOSE_FILES} -f ${COMPOSE_FILE_RAFT2}"
-  # fi
-  # if [ "${IF_COUCHDB}" == "couchdb" ]; then
-  #   COMPOSE_FILES="${COMPOSE_FILES} -f ${COMPOSE_FILE_COUCH}"
-  # fi
-  IMAGE_TAG=$IMAGETAG docker-compose -f $COMPOSE_FILES up -d 2>&1
-  # IMAGE_TAG=$IMAGETAG docker-compose -f docker-compose-e2e.yaml up -d 2>&1
-  docker ps -a
+  IMAGE_TAG=$IMAGETAG docker-compose -f $COMPOSE_FILE up
+
+  if [ "$DEV_MODE" = true ] ; then
+     popd
+     export FABRIC_CFG_PATH=${PWD}
+  fi
+
   if [ $? -ne 0 ]; then
     echo "ERROR !!!! Unable to start network"
     exit 1
   fi
+}
 
-  # if [ "$CONSENSUS_TYPE" == "kafka" ]; then
-  #   sleep 1
-  #   echo "Sleeping 10s to allow $CONSENSUS_TYPE cluster to complete booting"
-  #   sleep 9
-  # fi
-
-  # if [ "$CONSENSUS_TYPE" == "etcdraft" ]; then
-  #   sleep 1
-  #   echo "Sleeping 15s to allow $CONSENSUS_TYPE cluster to complete booting"
-  #   sleep 14
-  # fi
-
-  # now run the end to end script
-  # docker exec cli scripts/script.sh $CHANNEL_NAME $CLI_DELAY $LANGUAGE $CLI_TIMEOUT $VERBOSE $NO_CHAINCODE
+# Generate the needed certificates, the configuration, and start the network components for the new org.
+function newOrgNetworkUp () {
+  checkPrereqs
+  # generate artifacts if they don't exist
+  if [ ! -d "crypto-config/peerOrganizations/exportingentityorg.logistics.com" ]; then
+    generateCertsForNewOrg
+    replacePrivateKeyForNewOrg
+    generateChannelConfigForNewOrg
+  fi
+  # Create folder for docker network logs
+  LOG_DIR=$(dirname $LOG_FILE_NEW_ORG)
+  if [ ! -d $LOG_DIR ]
+  then
+    mkdir -p $LOG_DIR
+  fi
+  IMAGE_TAG=$IMAGETAG docker-compose -f $COMPOSE_FILE_NEW_ORG up >$LOG_FILE_NEW_ORG 2>&1 &
   if [ $? -ne 0 ]; then
-    echo "ERROR !!!! Test failed"
+    echo "ERROR !!!! Unable to start network"
     exit 1
   fi
 }
 
-# Upgrade the network components which are at version 1.3.x to 1.4.x
-# Stop the orderer and peers, backup the ledger for orderer and peers, cleanup chaincode containers and images
+# Upgrade the network from one version to another
+# If the new image tag (now in the IMAGETAG variable) is not passed in the command line using the "-i" switch:
+# 	this assumes that the new iamge has already been tagged with "latest".
+# Stop the orderer and peers, backup the ledger from orderer and peers, cleanup chaincode containers and images
 # and relaunch the orderer and peers with latest tag
-function upgradeNetwork() {
-  if [[ "$IMAGETAG" == *"1.4"* ]] || [[ $IMAGETAG == "latest" ]]; then
-    docker inspect -f '{{.Config.Volumes}}' orderer.logistics.com | grep -q '/var/hyperledger/production/orderer'
-    if [ $? -ne 0 ]; then
-      echo "ERROR !!!! This network does not appear to start with fabric-samples >= v1.3.x?"
-      exit 1
-    fi
-
-    LEDGERS_BACKUP=./ledgers-backup
-
-    # create ledger-backup directory
-    mkdir -p $LEDGERS_BACKUP
-
-    export IMAGE_TAG=$IMAGETAG
-    COMPOSE_FILES="-f ${COMPOSE_FILE}"
-    if [ "${CERTIFICATE_AUTHORITIES}" == "true" ]; then
-      COMPOSE_FILES="${COMPOSE_FILES} -f ${COMPOSE_FILE_CA}"
-      export BYFN_CA1_PRIVATE_KEY=$(cd crypto-config/peerOrganizations/org1.logistics.com/ca && ls *_sk)
-      export BYFN_CA2_PRIVATE_KEY=$(cd crypto-config/peerOrganizations/org2.logistics.com/ca && ls *_sk)
-    fi
-    if [ "${CONSENSUS_TYPE}" == "kafka" ]; then
-      COMPOSE_FILES="${COMPOSE_FILES} -f ${COMPOSE_FILE_KAFKA}"
-    elif [ "${CONSENSUS_TYPE}" == "etcdraft" ]; then
-      COMPOSE_FILES="${COMPOSE_FILES} -f ${COMPOSE_FILE_RAFT2}"
-    fi
-    if [ "${IF_COUCHDB}" == "couchdb" ]; then
-      COMPOSE_FILES="${COMPOSE_FILES} -f ${COMPOSE_FILE_COUCH}"
-    fi
-
-    # removing the cli container
-    docker-compose $COMPOSE_FILES stop cli
-    docker-compose $COMPOSE_FILES up -d --no-deps cli
-
-    echo "Upgrading orderer"
-    docker-compose $COMPOSE_FILES stop orderer.logistics.com
-    docker cp -a orderer.logistics.com:/var/hyperledger/production/orderer $LEDGERS_BACKUP/orderer.logistics.com
-    docker-compose $COMPOSE_FILES up -d --no-deps orderer.logistics.com
-
-    for PEER in peer0.org1.logistics.com peer1.org1.logistics.com peer0.org2.logistics.com peer1.org2.logistics.com; do
-      echo "Upgrading peer $PEER"
-
-      # Stop the peer and backup its ledger
-      docker-compose $COMPOSE_FILES stop $PEER
-      docker cp -a $PEER:/var/hyperledger/production $LEDGERS_BACKUP/$PEER/
-
-      # Remove any old containers and images for this peer
-      CC_CONTAINERS=$(docker ps | grep dev-$PEER | awk '{print $1}')
-      if [ -n "$CC_CONTAINERS" ]; then
-        docker rm -f $CC_CONTAINERS
-      fi
-      CC_IMAGES=$(docker images | grep dev-$PEER | awk '{print $1}')
-      if [ -n "$CC_IMAGES" ]; then
-        docker rmi -f $CC_IMAGES
-      fi
-
-      # Start the peer again
-      docker-compose $COMPOSE_FILES up -d --no-deps $PEER
-    done
-
-    docker exec cli scripts/upgrade_to_v14.sh $CHANNEL_NAME $CLI_DELAY $LANGUAGE $CLI_TIMEOUT $VERBOSE
-    if [ $? -ne 0 ]; then
-      echo "ERROR !!!! Test failed"
-      exit 1
-    fi
-  else
-    echo "ERROR !!!! Pass the v1.4.x image tag"
+function upgradeNetwork () {
+  docker inspect  -f '{{.Config.Volumes}}' orderer.logistics.com |grep -q '/var/hyperledger/production/orderer'
+  if [ $? -ne 0 ]; then
+    echo "ERROR !!!! This network does not appear to be using volumes for its ledgers, did you start from fabric-samples >= v1.0.6?"
+    exit 1
   fi
+
+  LEDGERS_BACKUP=./ledgers-backup
+
+  # create ledger-backup directory
+  mkdir -p $LEDGERS_BACKUP
+
+  export IMAGE_TAG=$IMAGETAG
+  COMPOSE_FILES="-f $COMPOSE_FILE"
+
+  echo "Upgrading orderer"
+  docker-compose $COMPOSE_FILES stop orderer.logistics.com
+  docker cp -a orderer.logistics.com:/var/hyperledger/production/orderer $LEDGERS_BACKUP/orderer.logistics.com
+  docker-compose $COMPOSE_FILES up --no-deps orderer.logistics.com
+
+  for PEER in peer0.exporterorg.logistics.com peer0.importerorg.logistics.com peer0.carrierorg.logistics.com peer0.regulatororg.logistics.com; do
+    echo "Upgrading peer $PEER"
+
+    # Stop the peer and backup its ledger
+    docker-compose $COMPOSE_FILES stop $PEER
+    docker cp -a $PEER:/var/hyperledger/production $LEDGERS_BACKUP/$PEER/
+
+    # Remove any old containers and images for this peer
+    CC_CONTAINERS=$(docker ps | grep dev-$PEER | awk '{print $1}')
+    if [ -n "$CC_CONTAINERS" ] ; then
+        docker rm -f $CC_CONTAINERS
+    fi
+    CC_IMAGES=$(docker images | grep dev-$PEER | awk '{print $1}')
+    if [ -n "$CC_IMAGES" ] ; then
+        docker rmi -f $CC_IMAGES
+    fi
+
+    # Start the peer again
+    docker-compose $COMPOSE_FILES up --no-deps $PEER
+  done
 }
 
-# Tear down running network
-function networkDown() {
-  # stop org3 containers also in addition to org1 and org2, in case we were running sample to add org3
-  # stop kafka and zookeeper containers in case we're running with kafka consensus-type
-  docker-compose -f docker-compose-e2e-template.yaml down --volumes --remove-orphans
+# Bring down running network
+function networkDown () {
+  # If we are in dev mode, we move to the devmode directory
+  if [ "$DEV_MODE" = true ] ; then
+     pushd ./devmode
+  fi
 
-  for PEER in peer0.exporterorg.trade.com peer0.importerorg.trade.com peer0.carrierorg.trade.com peer0.regulatororg.trade.com; do
+  docker-compose -f $COMPOSE_FILE down --volumes
+
+  for PEER in peer0.exporterorg.logistics.com peer0.importerorg.logistics.com peer0.carrierorg.logistics.com peer0.regulatororg.logistics.com; do
     # Remove any old containers and images for this peer
     CC_CONTAINERS=$(docker ps -a | grep dev-$PEER | awk '{print $1}')
     if [ -n "$CC_CONTAINERS" ] ; then
@@ -286,64 +269,120 @@ function networkDown() {
     fi
   done
 
-  # Don't remove the generated artifacts -- note, the ledgers are always removed
-  # if [ "$MODE" != "restart" ]; then
-  #   # Bring down the network, deleting the volumes
-  #   #Delete any ledger backups
-  #   docker run -v $PWD:/tmp/first-network --rm hyperledger/fabric-tools:$IMAGETAG rm -Rf /tmp/first-network/ledgers-backup
-  #   #Cleanup the chaincode containers
-  #   clearContainers
-  #   #Cleanup images
-  #   removeUnwantedImages
-  #   # remove orderer block and other channel configuration transactions and certs
-  #   rm -rf channel-artifacts/*.block channel-artifacts/*.tx crypto-config ./org3-artifacts/crypto-config/ channel-artifacts/org3.json
-  #   # remove the docker-compose yaml file that was customized to the example
-  #   rm -f docker-compose-e2e.yaml
-  # fi
+  if [ "$DEV_MODE" = true ] ; then
+     popd
+  fi
+}
+
+# Bring down running network components of the new org
+function newOrgNetworkDown () {
+  docker-compose -f $COMPOSE_FILE_NEW_ORG down --volumes
+
+  for PEER in peer0.exportingentityorg.logistics.com; do
+    # Remove any old containers and images for this peer
+    CC_CONTAINERS=$(docker ps -a | grep dev-$PEER | awk '{print $1}')
+    if [ -n "$CC_CONTAINERS" ] ; then
+      docker rm -f $CC_CONTAINERS
+    fi
+  done
+}
+
+# Delete network artifacts
+function networkClean () {
+  #Cleanup the chaincode containers
+  clearContainers
+  #Cleanup images
+  removeUnwantedImages
+  # If we are in dev mode, we move to the devmode directory
+  if [ "$DEV_MODE" = true ] ; then
+     pushd ./devmode
+  fi
+  # remove orderer block and other channel configuration transactions and certs
+  rm -rf channel-artifacts crypto-config add_org/crypto-config
+  # remove the docker-compose yaml file that was customized to the example
+  rm -f docker-compose-e2e.yaml add_org/docker-compose-exportingEntityOrg.yaml
+  # remove client certs 
+  rm -rf client-certs
+  if [ "$DEV_MODE" = true ] ; then
+     popd
+  fi
 }
 
 # Using docker-compose-e2e-template.yaml, replace constants with private key file names
 # generated by the cryptogen tool and output a docker-compose.yaml specific to this
 # configuration
-function replacePrivateKey() {
-  # sed on MacOSX does not support -i flag with a null extension. We will use
-  # 't' for our back-up's extension and delete it at the end of the function
-  ARCH=$(uname -s | grep Darwin)
-  if [ "$ARCH" == "Darwin" ]; then
-    OPTS="-it"
-  else
-    OPTS="-i"
-  fi
-
+function replacePrivateKey () {
   # Copy the template to the file that will be modified to add the private key
   cp docker-compose-e2e-template.yaml docker-compose-e2e.yaml
+  
+  if [ "$DEV_MODE" = true ] ; then
+    CURRENT_DIR=$PWD
+    cd crypto-config/peerOrganizations/devorg.logistics.com/ca/
+    PRIV_KEY=$(ls *_sk)
+    cd "$CURRENT_DIR"
+    if [ $(uname -s) == 'Darwin' ] ; then
+      sed -i '' "s/DEVORG_CA_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+    else
+      sed -i "s/DEVORG_CA_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+    fi
+  
+  else
+    # The next steps will replace the template's contents with the
+    # actual values of the private key file names for the two CAs.
+    if [ $(uname -s) == 'Darwin' ] ; then
+      CURRENT_DIR=$PWD
+      cd crypto-config/peerOrganizations/exporterorg.logistics.com/ca/
+      PRIV_KEY=$(ls *_sk)
+      cd "$CURRENT_DIR"
+      sed -i '' "s/EXPORTER_CA_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+      cd crypto-config/peerOrganizations/importerorg.logistics.com/ca/
+      PRIV_KEY=$(ls *_sk)
+      cd "$CURRENT_DIR"
+      sed -i '' "s/IMPORTER_CA_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+      cd crypto-config/peerOrganizations/carrierorg.logistics.com/ca/
+      PRIV_KEY=$(ls *_sk)
+      cd "$CURRENT_DIR"
+      sed -i '' "s/CARRIER_CA_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+      cd crypto-config/peerOrganizations/regulatororg.logistics.com/ca/
+      PRIV_KEY=$(ls *_sk)
+      cd "$CURRENT_DIR"
+      sed -i '' "s/REGULATOR_CA_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+    else
+      CURRENT_DIR=$PWD
+      cd crypto-config/peerOrganizations/exporterorg.logistics.com/ca/
+      PRIV_KEY=$(ls *_sk)
+      cd "$CURRENT_DIR"
+      sed -i "s/EXPORTER_CA_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+      cd crypto-config/peerOrganizations/importerorg.logistics.com/ca/
+      PRIV_KEY=$(ls *_sk)
+      cd "$CURRENT_DIR"
+      sed -i "s/IMPORTER_CA_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+      cd crypto-config/peerOrganizations/carrierorg.logistics.com/ca/
+      PRIV_KEY=$(ls *_sk)
+      cd "$CURRENT_DIR"
+      sed -i "s/CARRIER_CA_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+      cd crypto-config/peerOrganizations/regulatororg.logistics.com/ca/
+      PRIV_KEY=$(ls *_sk)
+      cd "$CURRENT_DIR"
+      sed -i "s/REGULATOR_CA_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+    fi
+  fi
+}
+
+function replacePrivateKeyForNewOrg () {
+  # Copy the template to the file that will be modified to add the private key
+  cp add_org/docker-compose-exportingEntityOrg-template.yaml add_org/docker-compose-exportingEntityOrg.yaml
 
   # The next steps will replace the template's contents with the
   # actual values of the private key file names for the two CAs.
   CURRENT_DIR=$PWD
-  cd crypto-config/peerOrganizations/importerorg.logistics.com/ca/
+  cd crypto-config/peerOrganizations/exportingentityorg.logistics.com/ca/
   PRIV_KEY=$(ls *_sk)
   cd "$CURRENT_DIR"
-  sed $OPTS "s/CA1_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
-
-  cd crypto-config/peerOrganizations/exporterorg.logistics.com/ca/
-  PRIV_KEY=$(ls *_sk)
-  cd "$CURRENT_DIR"
-  sed $OPTS "s/CA2_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
-
-  cd crypto-config/peerOrganizations/carrierorg.logistics.com/ca/
-  PRIV_KEY=$(ls *_sk)
-  cd "$CURRENT_DIR"
-  sed $OPTS "s/CA3_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
-
-  cd crypto-config/peerOrganizations/regulatororg.logistics.com/ca/
-  PRIV_KEY=$(ls *_sk)
-  cd "$CURRENT_DIR"
-  sed $OPTS "s/CA4_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
-
-  # If MacOSX, remove the temporary backup of the docker-compose file
-  if [ "$ARCH" == "Darwin" ]; then
-    rm docker-compose-e2e.yamlt
+  if [ $(uname -s) == 'Darwin' ] ; then
+    sed -i '' "s/EXPORTINGENTITY_CA_PRIVATE_KEY/${PRIV_KEY}/g" add_org/docker-compose-exportingEntityOrg.yaml
+  else
+    sed -i "s/EXPORTINGENTITY_CA_PRIVATE_KEY/${PRIV_KEY}/g" add_org/docker-compose-exportingEntityOrg.yaml
   fi
 }
 
@@ -365,7 +404,7 @@ function replacePrivateKey() {
 # After we run the tool, the certs will be parked in a folder titled ``crypto-config``.
 
 # Generates Org certs using cryptogen tool
-function generateCerts() {
+function generateCerts (){
   which cryptogen
   if [ "$?" -ne 0 ]; then
     echo "cryptogen tool not found. exiting"
@@ -375,12 +414,44 @@ function generateCerts() {
   echo "##########################################################"
   echo "##### Generate certificates using cryptogen tool #########"
   echo "##########################################################"
+  # If we are in dev mode, we move to the devmode directory
+  if [ "$DEV_MODE" = true ] ; then
+      if [ $(basename $PWD) != "devmode" ] ; then
+        pushd ./devmode
+        export FABRIC_CFG_PATH=${PWD}
+      fi
+  fi
 
   if [ -d "crypto-config" ]; then
     rm -Rf crypto-config
   fi
   set -x
   cryptogen generate --config=./crypto-config.yaml
+  res=$?
+  set +x
+  if [ $res -ne 0 ]; then
+    echo "Failed to generate certificates..."
+    exit 1
+  fi
+  echo
+}
+
+function generateCertsForNewOrg (){
+  which cryptogen
+  if [ "$?" -ne 0 ]; then
+    echo "cryptogen tool not found. exiting"
+    exit 1
+  fi
+  echo
+  echo "######################################################################"
+  echo "##### Generate certificates for new org using cryptogen tool #########"
+  echo "######################################################################"
+
+  if [ -d "crypto-config/peerOrganizations/exportingentityorg.logistics.com" ]; then
+    rm -Rf crypto-config/peerOrganizations/exportingentityorg.logistics.com
+  fi
+  set -x
+  cryptogen generate --config=./add_org/crypto-config.yaml
   res=$?
   set +x
   if [ $res -ne 0 ]; then
@@ -400,16 +471,17 @@ function generateCerts() {
 # Org's anchor peer on this channel.
 #
 # Configtxgen consumes a file - ``configtx.yaml`` - that contains the definitions
-# for the sample network. There are three members - one Orderer Org (``OrdererOrg``)
-# and two Peer Orgs (``Org1`` & ``Org2``) each managing and maintaining two peer nodes.
-# This file also specifies a consortium - ``SampleConsortium`` - consisting of our
-# two Peer Orgs.  Pay specific attention to the "Profiles" section at the top of
+# for the sample network. There are five members - one Orderer Org (``OrdererOrg``)
+# and four Peer Orgs (``ExporterOrg``, ``ImporterOrg``, ``CarrierOrg`` & ``RegulatorOrg``)
+# each managing and maintaining one peer node.
+# This file also specifies a consortium - ``logisticsConsortium`` - consisting of our
+# four Peer Orgs.  Pay specific attention to the "Profiles" section at the top of
 # this file.  You will notice that we have two unique headers. One for the orderer genesis
-# block - ``TwoOrgsOrdererGenesis`` - and one for our channel - ``TwoOrgsChannel``.
+# block - ``FourOrgslogisticsOrdererGenesis`` - and one for our channel - ``FourOrgslogisticsChannel``.
 # These headers are important, as we will pass them in as arguments when we create
 # our artifacts.  This file also contains two additional specifications that are worth
 # noting.  Firstly, we specify the anchor peers for each Peer Org
-# (``peer0.org1.logistics.com`` & ``peer0.org2.logistics.com``).  Secondly, we point to
+# (``peer0.exporterorg.logistics.com`` & ``peer0.importerorg.logistics.com``).  Secondly, we point to
 # the location of the MSP directory for each member, in turn allowing us to store the
 # root certificates for each Org in the orderer genesis block.  This is a critical
 # concept. Now any network entity communicating with the ordering service can have
@@ -435,26 +507,23 @@ function generateChannelArtifacts() {
     exit 1
   fi
 
-  echo "##########################################################"
-  echo "#########  Generating Orderer Genesis block ##############"
-  echo "##########################################################"
+  mkdir -p channel-artifacts
+
+  echo "###########################################################"
+  echo "#########  Generating Orderer Genesis block  ##############"
+  echo "###########################################################"
+  if [ "$DEV_MODE" = true ] ; then
+    PROFILE=OneOrglogisticsOrdererGenesis
+    CHANNEL_PROFILE=OneOrglogisticsChannel
+  else 
+    PROFILE=FourOrgsTradeOrdererGenesis
+    CHANNEL_PROFILE=FourOrgsTradeChannel
+  fi
+
   # Note: For some unknown reason (at least for now) the block file can't be
   # named orderer.genesis.block or the orderer will fail to launch!
-
-  # echo "CONSENSUS_TYPE="$CONSENSUS_TYPE
   set -x
-  # if [ "$CONSENSUS_TYPE" == "solo" ]; then
-    # configtxgen -profile FourOrgsOrdererGenesis -channelID $SYS_CHANNEL -outputBlock ./channel-artifacts/genesis.block
-  configtxgen -profile FourOrgsOrdererGenesis -outputBlock ./channel-artifacts/genesis.block
-  # elif [ "$CONSENSUS_TYPE" == "kafka" ]; then
-  #   configtxgen -profile SampleDevModeKafka -channelID $SYS_CHANNEL -outputBlock ./channel-artifacts/genesis.block
-  # elif [ "$CONSENSUS_TYPE" == "etcdraft" ]; then
-  #   configtxgen -profile SampleMultiNodeEtcdRaft -channelID $SYS_CHANNEL -outputBlock ./channel-artifacts/genesis.block
-  # else
-  #   set +x
-  #   echo "unrecognized CONSESUS_TYPE='$CONSENSUS_TYPE'. exiting"
-  #   exit 1
-  # fi
+  configtxgen -profile $PROFILE -outputBlock ./channel-artifacts/genesis.block
   res=$?
   set +x
   if [ $res -ne 0 ]; then
@@ -462,11 +531,11 @@ function generateChannelArtifacts() {
     exit 1
   fi
   echo
-  echo "#################################################################"
-  echo "### Generating channel configuration transaction 'channel.tx' ###"
-  echo "#################################################################"
+  echo "###################################################################"
+  echo "###  Generating channel configuration transaction  'channel.tx' ###"
+  echo "###################################################################"
   set -x
-  configtxgen -profile FourOrgsChannel -outputCreateChannelTx ./channel-artifacts/channel.tx -channelID $CHANNEL_NAME
+  configtxgen -profile $CHANNEL_PROFILE -outputCreateChannelTx ./channel-artifacts/channel.tx -channelID $CHANNEL_NAME
   res=$?
   set +x
   if [ $res -ne 0 ]; then
@@ -474,169 +543,147 @@ function generateChannelArtifacts() {
     exit 1
   fi
 
-  echo
-  echo "########################################################################"
-  echo "#######    Generating anchor peer update for ImporterOrgMSP   ##########"
-  echo "########################################################################"
-  set -x
-  configtxgen -profile FourOrgsChannel -outputAnchorPeersUpdate ./channel-artifacts/ImporterOrgMSPanchors.tx -channelID $CHANNEL_NAME -asOrg ImporterOrgMSP
-  res=$?
-  set +x
-  if [ $res -ne 0 ]; then
-    echo "Failed to generate anchor peer update for ImporterOrgMSP..."
-    exit 1
-  fi
+  if [ "$DEV_MODE" = false ] ; then
+    echo
+    echo "#####################################################################"
+    echo "#######  Generating anchor peer update for ExporterOrgMSP  ##########"
+    echo "#####################################################################"
+    set -x
+    configtxgen -profile $CHANNEL_PROFILE -outputAnchorPeersUpdate ./channel-artifacts/ExporterOrgMSPanchors.tx -channelID $CHANNEL_NAME -asOrg ExporterOrgMSP
+    res=$?
+    set +x
+    if [ $res -ne 0 ]; then
+      echo "Failed to generate anchor peer update for ExporterOrgMSP..."
+      exit 1
+    fi
 
-  echo
-  echo "########################################################################"
-  echo "#######    Generating anchor peer update for ExporterOrgMSP   ##########"
-  echo "########################################################################"
-  set -x
-  configtxgen -profile FourOrgsChannel -outputAnchorPeersUpdate \
-    ./channel-artifacts/ExporterOrgMSPanchors.tx -channelID $CHANNEL_NAME -asOrg ExporterOrgMSP
-  res=$?
-  set +x
-  if [ $res -ne 0 ]; then
-    echo "Failed to generate anchor peer update for ExporterOrgMSP..."
-    exit 1
-  fi
-  echo
+    echo
+    echo "#####################################################################"
+    echo "#######  Generating anchor peer update for ImporterOrgMSP  ##########"
+    echo "#####################################################################"
+    set -x
+    configtxgen -profile $CHANNEL_PROFILE -outputAnchorPeersUpdate \
+    ./channel-artifacts/ImporterOrgMSPanchors.tx -channelID $CHANNEL_NAME -asOrg ImporterOrgMSP
+    res=$?
+    set +x
+    if [ $res -ne 0 ]; then
+      echo "Failed to generate anchor peer update for ImporterOrgMSP..."
+      exit 1
+    fi
 
-  echo
-  echo "#######################################################################"
-  echo "#######    Generating anchor peer update for CarrierOrgMSP   ##########"
-  echo "#######################################################################"
-  set -x
-  configtxgen -profile FourOrgsChannel -outputAnchorPeersUpdate \
+    echo
+    echo "####################################################################"
+    echo "#######  Generating anchor peer update for CarrierOrgMSP  ##########"
+    echo "####################################################################"
+    set -x
+    configtxgen -profile $CHANNEL_PROFILE -outputAnchorPeersUpdate \
     ./channel-artifacts/CarrierOrgMSPanchors.tx -channelID $CHANNEL_NAME -asOrg CarrierOrgMSP
-  res=$?
-  set +x
-  if [ $res -ne 0 ]; then
-    echo "Failed to generate anchor peer update for CarrierOrgMSP..."
+    res=$?
+    set +x
+    if [ $res -ne 0 ]; then
+      echo "Failed to generate anchor peer update for CarrierOrgMSP..."
+      exit 1
+    fi
+
+    echo
+    echo "######################################################################"
+    echo "#######  Generating anchor peer update for RegulatorOrgMSP  ##########"
+    echo "######################################################################"
+    set -x
+    configtxgen -profile $CHANNEL_PROFILE -outputAnchorPeersUpdate \
+    ./channel-artifacts/RegulatorOrgMSPanchors.tx -channelID $CHANNEL_NAME -asOrg RegulatorOrgMSP
+    res=$?
+    set +x
+    if [ $res -ne 0 ]; then
+      echo "Failed to generate anchor peer update for RegulatorOrgMSP..."
+      exit 1
+    fi
+    echo
+  fi
+}
+
+# Generate configuration (policies, certificates) for new org in JSON format
+function generateChannelConfigForNewOrg() {
+  which configtxgen
+  if [ "$?" -ne 0 ]; then
+    echo "configtxgen tool not found. exiting"
     exit 1
   fi
-  echo
 
-  echo
-  echo "#########################################################################"
-  echo "#######    Generating anchor peer update for RegulatorOrgMSP   ##########"
-  echo "#########################################################################"
+  mkdir -p channel-artifacts
+
+  echo "####################################################################################"
+  echo "#########  Generating Channel Configuration for Exporting Entity Org  ##############"
+  echo "####################################################################################"
   set -x
-  configtxgen -profile FourOrgsChannel -outputAnchorPeersUpdate \
-    ./channel-artifacts/RegulatorOrgMSPanchors.tx -channelID $CHANNEL_NAME -asOrg RegulatorOrgMSP
+  FABRIC_CFG_PATH=${PWD}/add_org/ && configtxgen -printOrg ExportingEntityOrgMSP > ./channel-artifacts/exportingEntityOrg.json
   res=$?
   set +x
   if [ $res -ne 0 ]; then
-    echo "Failed to generate anchor peer update for RegulatorOrgMSP..."
+    echo "Failed to generate channel configuration for exportingentity org..."
     exit 1
   fi
   echo
 }
 
-# Obtain the OS and Architecture string that will be used to select the correct
-# native binaries for your platform, e.g., darwin-amd64 or linux-amd64
-OS_ARCH=$(echo "$(uname -s | tr '[:upper:]' '[:lower:]' | sed 's/mingw64_nt.*/windows/')-$(uname -m OrgsChannel| sed 's/x86_64/amd64/g')" | awk '{print tolower($0)}')
-# timeout duration - the duration the CLI should wait for a response from
-# another container before giving up
-CLI_TIMEOUT=10
-# default for delay between commands
-CLI_DELAY=3
-# system channel name defaults to "byfn-sys-channel"
-# SYS_CHANNEL="byfn-sys-channel"
-# channel name defaults to "mychannel"
-# CHANNEL_NAME="mychannel"
+# channel name (overrides default 'testchainid')
+CHANNEL_NAME="logisticschannel"
 # use this as the default docker-compose yaml definition
-COMPOSE_FILES=docker-compose-e2e.yaml
-#
-# COMPOSE_FILE_COUCH=docker-compose-couch.yaml
-# # org3 docker compose file
-# COMPOSE_FILE_ORG3=docker-compose-org3.yaml
-# # kafka and zookeeper compose file
-# COMPOSE_FILE_KAFKA=docker-compose-kafka.yaml
-# # two additional etcd/raft orderers
-# COMPOSE_FILE_RAFT2=docker-compose-etcdraft2.yaml
-# # certificate authorities compose file
-# COMPOSE_FILE_CA=docker-compose-ca.yaml
-#
-# use golang as the default language for chaincode
-LANGUAGE=golang
+COMPOSE_FILE=docker-compose-e2e.yaml
+COMPOSE_FILE_NEW_ORG=add_org/docker-compose-exportingEntityOrg.yaml
 # default image tag
 IMAGETAG="latest"
-# default consensus type
-CONSENSUS_TYPE="solo"
+# default log file
+LOG_FILE="logs/network.log"
+LOG_FILE_NEW_ORG="logs/network-neworg.log"
 # Parse commandline args
-if [ "$1" = "-m" ]; then # supports old usage, muscle memory is powerful!
-  shift
-fi
-MODE=$1
-shift
-# Determine whether starting, stopping, restarting, generating or upgrading
+
+MODE=$1;shift
+# Determine whether starting, stopping, restarting or generating for announce
 if [ "$MODE" == "up" ]; then
   EXPMODE="Starting"
 elif [ "$MODE" == "down" ]; then
   EXPMODE="Stopping"
 elif [ "$MODE" == "restart" ]; then
   EXPMODE="Restarting"
+elif [ "$MODE" == "clean" ]; then
+  EXPMODE="Cleaning"
 elif [ "$MODE" == "generate" ]; then
   EXPMODE="Generating certs and genesis block"
 elif [ "$MODE" == "upgrade" ]; then
   EXPMODE="Upgrading the network"
+elif [ "$MODE" == "createneworg" ]; then
+  EXPMODE="Generating certs and configuration for new org"
+elif [ "$MODE" == "startneworg" ]; then
+  EXPMODE="Starting peer and CA for new org"
+elif [ "$MODE" == "stopneworg" ]; then
+  EXPMODE="Stopping peer and CA for new org"
 else
   printHelp
   exit 1
 fi
 
-while getopts "h?c:t:d:f:s:l:i:o:anv" opt; do
+while getopts "h?m:c:f:i:o:d:" opt; do
   case "$opt" in
-  h | \?)
-    printHelp
-    exit 0
+    h|\?)
+      printHelp
+      exit 0
     ;;
-  c)
-    CHANNEL_NAME=$OPTARG
+    c)  CHANNEL_NAME=$OPTARG
     ;;
-  t)
-    CLI_TIMEOUT=$OPTARG
+    f)  COMPOSE_FILE=$OPTARG
     ;;
-  d)
-    CLI_DELAY=$OPTARG
+    i)  IMAGETAG=`uname -m`"-"$OPTARG
     ;;
-  f)
-    COMPOSE_FILE=$OPTARG
+    o)  LOG_FILE=$OPTARG
     ;;
-  s)
-    IF_COUCHDB=$OPTARG
-    ;;
-  l)
-    LANGUAGE=$OPTARG
-    ;;
-  i)
-    IMAGETAG=$(go env GOARCH)"-"$OPTARG
-    ;;
-  o)
-    CONSENSUS_TYPE=$OPTARG
-    ;;
-  a)
-    CERTIFICATE_AUTHORITIES=true
-    ;;
-  n)
-    NO_CHAINCODE=true
-    ;;
-  v)
-    VERBOSE=true
+    d)  DEV_MODE=$OPTARG 
     ;;
   esac
 done
 
-
 # Announce what was requested
-
-if [ "${IF_COUCHDB}" == "couchdb" ]; then
-  echo
-  echo "${EXPMODE} for channel '${CHANNEL_NAME}' with CLI timeout of '${CLI_TIMEOUT}' seconds and CLI delay of '${CLI_DELAY}' seconds and using database '${IF_COUCHDB}'"
-else
-  echo "${EXPMODE} for channel '${CHANNEL_NAME}' with CLI timeout of '${CLI_TIMEOUT}' seconds and CLI delay of '${CLI_DELAY}' seconds"
-fi
+echo "${EXPMODE} with channel '${CHANNEL_NAME}'"
 # ask for confirmation to proceed
 askProceed
 
@@ -652,8 +699,20 @@ elif [ "${MODE}" == "generate" ]; then ## Generate Artifacts
 elif [ "${MODE}" == "restart" ]; then ## Restart the network
   networkDown
   networkUp
-elif [ "${MODE}" == "upgrade" ]; then ## Upgrade the network from version 1.2.x to 1.3.x
+elif [ "${MODE}" == "reset" ]; then ## Delete chaincode containers while keeping network artifacts
+  removeUnwantedImages
+elif [ "${MODE}" == "clean" ]; then ## Delete network artifacts
+  networkClean
+elif [ "${MODE}" == "upgrade" ]; then ## Upgrade the network from v1.0.x to v1.1
   upgradeNetwork
+elif [ "${MODE}" == "createneworg" ]; then ## Generate artifacts for new org
+  generateCertsForNewOrg
+  replacePrivateKeyForNewOrg
+  generateChannelConfigForNewOrg
+elif [ "${MODE}" == "startneworg" ]; then ## Start the network components for the new org
+  newOrgNetworkUp
+elif [ "${MODE}" == "stopneworg" ]; then ## Start the network components for the new org
+  newOrgNetworkDown
 else
   printHelp
   exit 1
