@@ -104,7 +104,7 @@ function askProceed () {
   #     askProceed
   #   ;;
   # esac
-  echo "hihi"
+  echo "Tui xin tự giới thiệu tui là đệ nhứt Quốc sư Hoa Kỳ, cố dấn tối cao của tổng thống Mỹ Donald Trump."
 }
 
 # Obtain CONTAINER_IDS and remove them
@@ -170,7 +170,7 @@ function networkUp () {
   # then
   #   mkdir -p $LOG_DIR
   # fi
-  IMAGE_TAG=$IMAGETAG docker-compose -f $COMPOSE_FILE up
+  IMAGE_TAG=$IMAGETAG docker-compose -f $COMPOSE_FILE up 2>&1
 
   if [ "$DEV_MODE" = true ] ; then
      popd
@@ -230,7 +230,7 @@ function upgradeNetwork () {
   docker cp -a orderer.logistics.com:/var/hyperledger/production/orderer $LEDGERS_BACKUP/orderer.logistics.com
   docker-compose $COMPOSE_FILES up --no-deps orderer.logistics.com
 
-  for PEER in peer0.exporterorg.logistics.com peer0.importerorg.logistics.com peer0.carrierorg.logistics.com peer0.regulatororg.logistics.com; do
+  for PEER in peer0.exporterorg.logistics.com peer0.exporterbankorg.logistics.com peer0.importerbankorg.logistics.com peer0.importerorg.logistics.com peer0.carrierorg.logistics.com peer0.regulatororg.logistics.com; do
     echo "Upgrading peer $PEER"
 
     # Stop the peer and backup its ledger
@@ -261,7 +261,7 @@ function networkDown () {
 
   docker-compose -f $COMPOSE_FILE down --volumes
 
-  for PEER in peer0.exporterorg.logistics.com peer0.importerorg.logistics.com peer0.carrierorg.logistics.com peer0.regulatororg.logistics.com; do
+  for PEER in peer0.exporterorg.logistics.com peer0.exporterbankorg.logistics.com peer0.importerbankorg.logistics.com peer0.importerorg.logistics.com peer0.carrierorg.logistics.com peer0.regulatororg.logistics.com; do
     # Remove any old containers and images for this peer
     CC_CONTAINERS=$(docker ps -a | grep dev-$PEER | awk '{print $1}')
     if [ -n "$CC_CONTAINERS" ] ; then
@@ -335,14 +335,27 @@ function replacePrivateKey () {
       PRIV_KEY=$(ls *_sk)
       cd "$CURRENT_DIR"
       sed -i '' "s/EXPORTER_CA_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+
+      cd crypto-config/peerOrganizations/exporterbankorg.logistics.com/ca/
+      PRIV_KEY=$(ls *_sk)
+      cd "$CURRENT_DIR"
+      sed -i '' "s/EXPORTERBANK_CA_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+      
       cd crypto-config/peerOrganizations/importerorg.logistics.com/ca/
       PRIV_KEY=$(ls *_sk)
       cd "$CURRENT_DIR"
       sed -i '' "s/IMPORTER_CA_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+
+      cd crypto-config/peerOrganizations/importerbankorg.logistics.com/ca/
+      PRIV_KEY=$(ls *_sk)
+      cd "$CURRENT_DIR"
+      sed -i '' "s/IMPORTERBANK_CA_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+      
       cd crypto-config/peerOrganizations/carrierorg.logistics.com/ca/
       PRIV_KEY=$(ls *_sk)
       cd "$CURRENT_DIR"
       sed -i '' "s/CARRIER_CA_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+      
       cd crypto-config/peerOrganizations/regulatororg.logistics.com/ca/
       PRIV_KEY=$(ls *_sk)
       cd "$CURRENT_DIR"
@@ -353,14 +366,27 @@ function replacePrivateKey () {
       PRIV_KEY=$(ls *_sk)
       cd "$CURRENT_DIR"
       sed -i "s/EXPORTER_CA_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+
+      cd crypto-config/peerOrganizations/exporterbankorg.logistics.com/ca/
+      PRIV_KEY=$(ls *_sk)
+      cd "$CURRENT_DIR"
+      sed -i "s/EXPORTERBANK_CA_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+      
       cd crypto-config/peerOrganizations/importerorg.logistics.com/ca/
       PRIV_KEY=$(ls *_sk)
       cd "$CURRENT_DIR"
       sed -i "s/IMPORTER_CA_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+
+      cd crypto-config/peerOrganizations/importerbankorg.logistics.com/ca/
+      PRIV_KEY=$(ls *_sk)
+      cd "$CURRENT_DIR"
+      sed -i "s/IMPORTERBANK_CA_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+      
       cd crypto-config/peerOrganizations/carrierorg.logistics.com/ca/
       PRIV_KEY=$(ls *_sk)
       cd "$CURRENT_DIR"
       sed -i "s/CARRIER_CA_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+      
       cd crypto-config/peerOrganizations/regulatororg.logistics.com/ca/
       PRIV_KEY=$(ls *_sk)
       cd "$CURRENT_DIR"
@@ -559,6 +585,20 @@ function generateChannelArtifacts() {
 
     echo
     echo "#####################################################################"
+    echo "#######  Generating anchor peer update for ExporterbankOrgMSP  ##########"
+    echo "#####################################################################"
+    set -x
+    configtxgen -profile $CHANNEL_PROFILE -outputAnchorPeersUpdate \
+    ./channel-artifacts/ExporterbankOrgMSPanchors.tx -channelID $CHANNEL_NAME -asOrg ExporterbankOrgMSP
+    res=$?
+    set +x
+    if [ $res -ne 0 ]; then
+      echo "Failed to generate anchor peer update for ExporterbankOrgMSP..."
+      exit 1
+    fi
+
+    echo
+    echo "#####################################################################"
     echo "#######  Generating anchor peer update for ImporterOrgMSP  ##########"
     echo "#####################################################################"
     set -x
@@ -568,6 +608,20 @@ function generateChannelArtifacts() {
     set +x
     if [ $res -ne 0 ]; then
       echo "Failed to generate anchor peer update for ImporterOrgMSP..."
+      exit 1
+    fi
+
+    echo
+    echo "#####################################################################"
+    echo "#######  Generating anchor peer update for ImporterbankOrgMSP  ##########"
+    echo "#####################################################################"
+    set -x
+    configtxgen -profile $CHANNEL_PROFILE -outputAnchorPeersUpdate \
+    ./channel-artifacts/ImporterbankOrgMSPanchors.tx -channelID $CHANNEL_NAME -asOrg ImporterbankOrgMSP
+    res=$?
+    set +x
+    if [ $res -ne 0 ]; then
+      echo "Failed to generate anchor peer update for ImporterbankOrgMSP..."
       exit 1
     fi
 

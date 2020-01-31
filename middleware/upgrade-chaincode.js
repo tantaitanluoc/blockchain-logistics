@@ -25,7 +25,7 @@ var installCC = require('./install-chaincode.js');
 var instantiateCC = require('./instantiate-chaincode.js');
 
 Constants.networkConfig = './config_upgrade.json';	// Use the augmented configuration
-Constants.TRANSACTION_ENDORSEMENT_POLICY = Constants.ALL_FIVE_ORG_MEMBERS;	// Use the updated endorsement policy
+Constants.TRANSACTION_ENDORSEMENT_POLICY = Constants.ALL_SIX_ORG_MEMBERS;	// Use the updated endorsement policy
 
 // Install a chaincode, and upon success, attempt to upgrade it on the channel
 installCC.installChaincode(Constants.CHAINCODE_UPGRADE_PATH, Constants.CHAINCODE_UPGRADE_VERSION, Constants).then(() => {

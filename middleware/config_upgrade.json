@@ -20,6 +20,20 @@
 				"tls_cacerts": "../network/crypto-config/peerOrganizations/exporterorg.logistics.com/peers/peer0.exporterorg.logistics.com/msp/tlscacerts/tlsca.exporterorg.logistics.com-cert.pem"
 			}
 		},
+		"exporterbankorg": {
+			"name": "peerExporterbankOrg",
+			"mspid": "ExporterbankOrgMSP",
+			"ca": {
+				"url": "https://localhost:12054",
+				"name": "ca-exporterbankorg"
+			},
+			"peer1": {
+				"requests": "grpcs://localhost:12051",
+				"events": "grpcs://localhost:12053",
+				"server-hostname": "peer0.exporterbankorg.logistics.com",
+				"tls_cacerts": "../network/crypto-config/peerOrganizations/exporterbankorg.logistics.com/peers/peer0.exporterbankorg.logistics.com/msp/tlscacerts/tlsca.exporterbankorg.logistics.com-cert.pem"
+			}
+		},
 		"importerorg": {
 			"name": "peerImporterOrg",
 			"mspid": "ImporterOrgMSP",
@@ -32,6 +46,20 @@
 				"events": "grpcs://localhost:8053",
 				"server-hostname": "peer0.importerorg.logistics.com",
 				"tls_cacerts": "../network/crypto-config/peerOrganizations/importerorg.logistics.com/peers/peer0.importerorg.logistics.com/msp/tlscacerts/tlsca.importerorg.logistics.com-cert.pem"
+			}
+		},
+		"importerbankorg": {
+			"name": "peerImporterbankOrg",
+			"mspid": "ImporterbankOrgMSP",
+			"ca": {
+				"url": "https://localhost:11054",
+				"name": "ca-importerbankorg"
+			},
+			"peer1": {
+				"requests": "grpcs://localhost:11051",
+				"events": "grpcs://localhost:11053",
+				"server-hostname": "peer0.importerbankorg.logistics.com",
+				"tls_cacerts": "../network/crypto-config/peerOrganizations/importerbankorg.logistics.com/peers/peer0.importerbankorg.logistics.com/msp/tlscacerts/tlsca.importerbankorg.logistics.com-cert.pem"
 			}
 		},
 		"carrierorg": {

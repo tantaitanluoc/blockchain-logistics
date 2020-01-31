@@ -124,7 +124,6 @@ function joinChannel(org, ORGS, constants) {
 		console.log('Successfully got the genesis block');
 		genesis_block = block;
 		for (let key in ORGS[org]) {
-			console.log("1\n")
 			if (ORGS[org].hasOwnProperty(key)) {
 				if (key.indexOf('peer') === 0) {
 					data = fs.readFileSync(path.join(__dirname, ORGS[org][key]['tls_cacerts']));
@@ -155,7 +154,6 @@ function joinChannel(org, ORGS, constants) {
 
 		var eventPromises = [];
 		eventhubs.forEach((eh) => {
-			console.log("2\n")
 			let txPromise = new Promise((resolve, reject) => {
 				let handle = setTimeout(reject, 40000);
 
@@ -181,7 +179,6 @@ function joinChannel(org, ORGS, constants) {
 
 			eventPromises.push(txPromise);
 		});
-		console.log("3\n")
 		tx_id = client.newTransactionID();
 		let request = {
 			targets : targets,
@@ -204,6 +201,7 @@ function joinChannel(org, ORGS, constants) {
 			throw new Error('Failed to join channel');
 		}
 	}, (err) => {
+		throw new Error('Failed to join channel');
 		console.log('Failed to join channel due to error: ' + err.stack ? err.stack : err);
 	});
 }

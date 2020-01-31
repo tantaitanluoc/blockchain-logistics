@@ -122,7 +122,7 @@ function getMember(username, password, client, userOrg) {
 
 			return cop.enroll({
 				enrollmentID: username,
-				enrollmentSecret: password
+				enrollmentSecret: password,
 			}).then((enrollment) => {
 				console.log('Successfully enrolled user \'' + username + '\'');
 
@@ -142,6 +142,61 @@ function getMember(username, password, client, userOrg) {
 	})
 	.catch((err) => {
 		throw new Error("Unable to get user context for", username);
+	});
+}
+
+function enrollUser(username, password, client, userOrg) {
+	var caUrl = ORGS[userOrg].ca.url;
+
+	return client.getUserContext(username, true)
+	.then((user) => {
+		return new Promise((resolve, reject) => {
+			if (user && user.isEnrolled()) {
+				console.log(`User ${username} is already enrolled.`);
+				return resolve(user);
+			}
+
+			var member = new User(username);
+			
+			var cryptoSuite = client.getCryptoSuite();
+			if (!cryptoSuite) {
+				cryptoSuite = Client.newCryptoSuite();
+				if (userOrg) {
+					cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: module.exports.storePathForOrg(ORGS[userOrg].name)}));
+					client.setCryptoSuite(cryptoSuite);
+				}
+			}
+			member.setCryptoSuite(cryptoSuite);
+
+			// need to enroll it with CA server
+			var cop = new copService(caUrl, tlsOptions, ORGS[userOrg].ca.name, cryptoSuite);
+
+			return cop.enroll({
+				enrollmentID: username,
+				enrollmentSecret: password
+			}).then((enrollment) => {
+				console.log('Successfully enrolled user \'' + username + '\'');
+				return member.setEnrollment(enrollment.key, enrollment.certificate, ORGS[userOrg].mspid);
+			}).then(() => {
+				var skipPersistence = true;
+				if (!client.getStateStore()) {
+					skipPersistence = true;
+				}
+				return client.setUserContext(member, skipPersistence);
+			})
+			// .then(()=>{
+			// 	return client.saveUserToStateStore();
+			// })
+			.then(() => {
+				return resolve(member);
+			}).catch((err) => {
+				reject(err);
+				// throw new Error('Failed to enroll and persist user. Error: ' + err.stack ? err.stack : err);
+			});
+		});
+	})
+	.catch((err) => {
+		throw new Error(`Unable to get user context for ${username}: ${err}`);
 	});
 }
 
@@ -193,7 +248,43 @@ function registerAndEnrollUser(client, cop, admin, username, userOrg) {
 	});
 }
 
-function getUserMember(adminUser, adminPassword, client, userOrg, username) {
+function registerUser(client, cop, admin, username, userOrg, role) {
+	return new Promise((resolve, reject) => {
+	console.log('Registering user', username);
+	var enrollUser = new User(username);
+
+	// register 'username' CA server
+	return cop.register({
+		enrollmentID: username,
+		role: 'client',
+		attrs: [{ name: 'role', value: role, ecert: true }], // xác định vai trò của user trong tổ chức
+		affiliation: 'org1.department1',
+		maxEnrollments: -1 
+	}, admin).catch((err) => {
+		throw err;
+	}).then((userSecret) => {
+		console.log('Successfully registered user \'' + username + '\'');
+		userPassword = userSecret;
+
+		// Now that 'username' is registered, try to enroll (login)
+	}).catch((err) => {
+		console.log('Failed to register user. Error: ' + err.stack ? err.stack : err);
+		throw err;
+	}).then(() => {
+		console.log('Saved enrollment record for user \'' + username + '\'');
+		enrollUser._enrollmentSecret = userPassword;
+		enrollUser._roles = role
+		enrollUser._mspId = userOrg
+		return resolve(enrollUser);
+	}).catch((err) => {
+		console.log('Failed to enroll and persist user. Error: ' + err.stack ? err.stack : err);
+		reject(err);
+	});
+	});
+}
+
+
+function getUserMember(adminUser, adminPassword, client, userOrg, username, role) {
 	var caUrl = ORGS[userOrg].ca.url;
 	var userPassword = '';
 
@@ -219,8 +310,9 @@ function getUserMember(adminUser, adminPassword, client, userOrg, username) {
 
 					if (admin && admin.isEnrolled()) {
 						console.log('Successfully loaded admin member from persistence');
-						return registerAndEnrollUser(client, cop, admin, username, userOrg)
+						return registerUser(client, cop, admin, username, userOrg, role)
 						.then((enrollUser) => {
+							console.log(enrollUser)
 							return resolve(enrollUser);
 						}, (err) => {
 							reject(err);
@@ -246,7 +338,8 @@ function getUserMember(adminUser, adminPassword, client, userOrg, username) {
 						}
 						return client.setUserContext(member, skipPersistence);
 					}).then(() => {
-						return registerAndEnrollUser(client, cop, member, username, userOrg)
+						// return registerAndEnrollUser(client, cop, member, username, userOrg)
+						return registerUser(client, cop, member, username, userOrg, role)
 						.then((enrollUser) => {
 							return resolve(enrollUser);
 						}, (err) => {
@@ -338,7 +431,7 @@ module.exports.getOrderAdminSubmitter = function(client, test) {
 	return getOrdererAdmin(client, test);
 };
 
-module.exports.getSubmitter = function(client, peerOrgAdmin, org, username) {
+module.exports.getSubmitter = function(client, peerOrgAdmin, org, username, password, role) {
 	if (arguments.length < 1) throw new Error('"client" is a required parameter');
 
 	var peerAdmin, userOrg;
@@ -360,18 +453,24 @@ module.exports.getSubmitter = function(client, peerOrgAdmin, org, username) {
 	}
 
 	if (peerAdmin) {
-		return getAdmin(client, userOrg);
-	} else if (username) {
-		return getUserMember('admin', 'adminpw', client, userOrg, username);
+		return (userOrg==='orderer')?getOrdererAdmin(client):getAdmin(client, userOrg);
+		// return getOrdererAdmin(client);
+	} else if (username && !password && role) {
+		// trường hợp có nhập username nhưng không nhập password (đăng kí)
+		return getUserMember('admin', 'adminpw', client, userOrg, username, role);
 	} else {
-		return getMember('admin', 'adminpw', client, userOrg);
+		// trường hợp có nhập username và password (đăng nhập)
+		return enrollUser(username, password, client, userOrg)
+		.catch(err =>{
+			throw err;
+		});
 	}
 };
 
 var eventhubs = [];
 module.exports.eventhubs = eventhubs;
 
-function getClientUser(userOrg, username, password) {
+function getClientUser(userOrg, username, password, role) {
 	if (ORGS[userOrg] === null || ORGS[userOrg] === undefined) {
 		return new Promise((resolve, reject) => {
 			return reject('Unknown org: ' + userOrg);
@@ -393,11 +492,14 @@ function getClientUser(userOrg, username, password) {
 		// Hack/shortcut to enroll an admin user
 		if (username === 'admin') {
 			if (password !== 'adminpw') {
-				throw new Error('Invalid admin password');
+				throw new Error('Permission deinied. Invalid admin password');
 			}
-			return module.exports.getSubmitter(client, false, userOrg);
+			return module.exports.getSubmitter(client, true, userOrg);
 		} else {
-			return module.exports.getSubmitter(client, false, userOrg, username);
+			return module.exports.getSubmitter(client, false, userOrg, username, password, role)
+			.catch(err=>{
+				throw err;
+			});
 		}
 	});
 }

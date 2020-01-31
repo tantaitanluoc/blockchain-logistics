@@ -73,7 +73,7 @@ createChannel.createChannel(Constants.CHANNEL_NAME).then(() => {
 		Constants.CHAINCODE_PATH,
 		Constants.CHAINCODE_VERSION,
 		'init',
-		['LumberInc', 'LumberBank', '100000', 'WoodenToys', 'ToyBank', '200000', 'UniversalFrieght', 'ForestryDepartment'],
+		['LumberInc', 'LumberBank', '200000', 'WoodenToys', 'ToyBank', '200000', 'UniversalFrieght','200000', 'ForestryDepartment', '200000'],
 		false
 	);
 }, (err) => {
@@ -84,58 +84,62 @@ createChannel.createChannel(Constants.CHANNEL_NAME).then(() => {
 	console.log('\n');
 	process.exit(1);
 })
+.then(()=>{
+	console.log("Everything OK");
+	process.exit(1);
+})
 // Instantiate chaincode on the channel on all peers
-.then(() => {
-	console.log('\n');
-	console.log('-------------------------------');
-	console.log('CHAINCODE INSTANTIATE COMPLETE');
-	console.log('-------------------------------');
-	console.log('\n');
-	ClientUtils.txEventsCleanup();
+// .then(() => {
+// 	console.log('\n');
+// 	console.log('-------------------------------');
+// 	console.log('CHAINCODE INSTANTIATE COMPLETE');
+// 	console.log('-------------------------------');
+// 	console.log('\n');
+// 	ClientUtils.txEventsCleanup();
 
-	return invokeCC.invokeChaincode(Constants.IMPORTER_ORG, Constants.CHAINCODE_VERSION, 'requestTrade', ['2ks89j9', '50000','Wood for Toys'], 'Importer');
-}, (err) => {
-	console.log('\n');
-	console.log('------------------------------');
-	console.log('CHAINCODE INSTANTIATE FAILED:', err);
-	console.log('------------------------------');
-	console.log('\n');
-	process.exit(1);
-})
-// Invoke a trade request operation on the chaincode
-.then(() => {
-	console.log('\n');
-	console.log('------------------------------');
-	console.log('CHAINCODE INVOCATION COMPLETE');
-	console.log('------------------------------');
-	console.log('\n');
+// 	return invokeCC.invokeChaincode(Constants.IMPORTER_ORG, Constants.CHAINCODE_VERSION, 'requestTrade', ['idcheck01', '10-10-1010','Wood for Toys','100','10-11-2019','California'], 'Importer');
+// }, (err) => {
+// 	console.log('\n');
+// 	console.log('------------------------------');
+// 	console.log('CHAINCODE INSTANTIATE FAILED:', err);
+// 	console.log('------------------------------');
+// 	console.log('\n');
+// 	process.exit(1);
+// })
+// // Invoke a trade request operation on the chaincode
+// .then(() => {
+// 	console.log('\n');
+// 	console.log('------------------------------');
+// 	console.log('CHAINCODE INVOCATION COMPLETE');
+// 	console.log('------------------------------');
+// 	console.log('\n');
 
-	return queryCC.queryChaincode(Constants.EXPORTER_ORG, Constants.CHAINCODE_VERSION, 'getTradeStatus', ['2ks89j9'], 'Exporter');
-}, (err) => {
-	console.log('\n');
-	console.log('-----------------------------');
-	console.log('CHAINCODE INVOCATION FAILED:', err);
-	console.log('-----------------------------');
-	console.log('\n');
-	process.exit(1);
-})
-// Query the chaincode for the trade request status
-.then((result) => {
-	console.log('\n');
-	console.log('-------------------------');
-	console.log('CHAINCODE QUERY COMPLETE');
-	console.log('VALUE:', result);
-	console.log('-------------------------');
-	console.log('\n');
-	ClientUtils.txEventsCleanup();
-}, (err) => {
-	console.log('\n');
-	console.log('------------------------');
-	console.log('CHAINCODE QUERY FAILED:', err);
-	console.log('------------------------');
-	console.log('\n');
-	process.exit(1);
-});
+// 	return queryCC.queryChaincode(Constants.EXPORTER_ORG, Constants.CHAINCODE_VERSION, 'getTradeStatus', ['idcheck01'], 'Exporter');
+// }, (err) => {
+// 	console.log('\n');
+// 	console.log('-----------------------------');
+// 	console.log('CHAINCODE INVOCATION FAILED:', err);
+// 	console.log('-----------------------------');
+// 	console.log('\n');
+// 	process.exit(1);
+// })
+// // Query the chaincode for the trade request status
+// .then((result) => {
+// 	console.log('\n');
+// 	console.log('-------------------------');
+// 	console.log('CHAINCODE QUERY COMPLETE');
+// 	console.log('VALUE:', result);
+// 	console.log('-------------------------');
+// 	console.log('\n');
+// 	ClientUtils.txEventsCleanup();
+// }, (err) => {
+// 	console.log('\n');
+// 	console.log('------------------------');
+// 	console.log('CHAINCODE QUERY FAILED:', err);
+// 	console.log('------------------------');
+// 	console.log('\n');
+// 	process.exit(1);
+// });
 
 process.on('uncaughtException', err => {
 	console.error(err);

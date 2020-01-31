@@ -22,6 +22,8 @@ volumes:
   peer0.importerorg.logistics.com:
   peer0.carrierorg.logistics.com:
   peer0.regulatororg.logistics.com:
+  peer0.importerbankorg.logistics.com:
+  peer0.exporterbankorg.logistics.com:
 
 networks:
   logistics:
@@ -42,6 +44,23 @@ services:
     container_name: ca_peerExporterOrg
     networks:
       - logistics
+    
+  exporterbank-ca:
+    image: hyperledger/fabric-ca:$IMAGE_TAG
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-exporterbankorg
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.exporterbankorg.logistics.com-cert.pem
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/EXPORTERBANK_CA_PRIVATE_KEY
+    ports:
+      - "12054:7054"
+    command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.exporterbankorg.logistics.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/EXPORTERBANK_CA_PRIVATE_KEY -b admin:adminpw -d'
+    volumes:
+      - ./crypto-config/peerOrganizations/exporterbankorg.logistics.com/ca/:/etc/hyperledger/fabric-ca-server-config
+    container_name: ca_peerExporterbankOrg
+    networks:
+      - logistics  
 
   importer-ca:
     image: hyperledger/fabric-ca:$IMAGE_TAG
@@ -57,6 +76,23 @@ services:
     volumes:
       - ./crypto-config/peerOrganizations/importerorg.logistics.com/ca/:/etc/hyperledger/fabric-ca-server-config
     container_name: ca_peerImporterOrg
+    networks:
+      - logistics
+
+  importerbank-ca:
+    image: hyperledger/fabric-ca:$IMAGE_TAG
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-importerbankorg
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.importerbankorg.logistics.com-cert.pem
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/IMPORTERBANK_CA_PRIVATE_KEY
+    ports:
+      - "11054:7054"
+    command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.importerbankorg.logistics.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/IMPORTERBANK_CA_PRIVATE_KEY -b admin:adminpw -d'
+    volumes:
+      - ./crypto-config/peerOrganizations/importerbankorg.logistics.com/ca/:/etc/hyperledger/fabric-ca-server-config
+    container_name: ca_peerImporterbankOrg
     networks:
       - logistics
 
@@ -110,11 +146,27 @@ services:
     networks:
       - logistics
 
+  peer0.exporterbankorg.logistics.com:
+    container_name: peer0.exporterbankorg.logistics.com
+    extends:
+      file:  base/docker-compose-base.yaml
+      service: peer0.exporterbankorg.logistics.com
+    networks:
+      - logistics
+
   peer0.importerorg.logistics.com:
     container_name: peer0.importerorg.logistics.com
     extends:
       file:  base/docker-compose-base.yaml
       service: peer0.importerorg.logistics.com
+    networks:
+      - logistics
+
+  peer0.importerbankorg.logistics.com:
+    container_name: peer0.importerbankorg.logistics.com
+    extends:
+      file:  base/docker-compose-base.yaml
+      service: peer0.importerbankorg.logistics.com
     networks:
       - logistics
 

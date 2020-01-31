@@ -1,0 +1,517 @@
+<html>
+   <!-- <script
+      src="https://code.jquery.com/jquery-3.4.1.min.js"
+      integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+      crossorigin="anonymous">
+   </script> -->
+   <script
+   src="https://code.jquery.com/jquery-3.4.1.min.js">
+</script>
+   <script>
+     var arr =[
+         {name:"importer1", value:["impmng0","manager", "importerorg","ISOFEeITaQdq"]},
+         {name:"exporter1", value:["expmng0", "manager", "exporterorg","XVTQMzYTsCyb"]},
+         {name:"importer2", value:["impmng0","manager", "importerorg","ISOFEeITaQdq"]},
+         {name:"importerbank1", value:["impbankmng0", "manager", "importerbankorg","twXlIqdwiVjn"]},
+         {name:"exporterbank1", value:["expbankmng0", "manager", "exporterbankorg","PepkYbIWazsJ"]},
+         {name:"exporter2", value:["expmng0", "manager", "exporterorg","XVTQMzYTsCyb"]},
+         {name:"regulator1", value:["regmng0", "manager", "regulatororg","UMwNtBqnNjwG"]},
+         {name:"exporter3", value:["expmng0", "manager", "exporterorg","XVTQMzYTsCyb"]},
+         {name:"exporter5", value:["expmng0", "manager", "exporterorg","XVTQMzYTsCyb"]},
+         {name:"regulator2", value:[ "regmng0", "manager", "regulatororg","UMwNtBqnNjwG"]},
+         {name:"exporterbank2", value:["expbankact0", "accountancy", "exporterbankorg","zSjAFTPJqDHb"]},
+         {name:"carrier1", value:["carmng0", "manager", "carrierorg","sNahlBSJsndp"]},
+         {name:"importerbank3", value:["impbankact0", "accountancy", "importerbankorg","nxynCCSNJXQA"]},
+         {name:"exporterbank3", value:["expbankact0", "accountancy", "exporterbankorg","zSjAFTPJqDHb"]},
+         {name:"importerbank4", value:["impbankact0", "accountancy", "importerbankorg","nxynCCSNJXQA"]},
+         {name:"carrier2", value:["carmng0", "manager", "carrierorg","sNahlBSJsndp"]},
+         {name:"exporterbank4", value:["expbankact0", "accountancy", "exporterbankorg","zSjAFTPJqDHb"]},
+         {name:"importerbank2", value:["impbankact0", "accountancy", "importerbankorg","nxynCCSNJXQA"]},
+         {name:"exporter4", value:["expmng0", "manager", "exporterorg","lrLWTwzVQSDM"]},
+         {name:"carrier3", value:["carmng0", "manager", "carrierorg","sNahlBSJsndp"]},
+         
+      ]
+      
+      var tradeID = "008"
+
+
+      // var pass = []
+
+
+      // $(document).ready(() =>{
+      //    $.ajax({
+      //       url:'../login',
+      //       type: 'post',
+      //       data: {username:"admin",orgname:"orderer",password:"adminpw"},            
+      //       headers: {"Content-Type":"application/x-www-form-urlencoded"},
+      //       success:(data) => {
+      //          for(let i = 0;i < arr.length; i++){
+      //             // console.log({username:arr[i].value[0],orgname:arr[i].value[2],role:arr[i].value[1]})
+
+      //             $.ajax({
+      //                url:'../register',
+      //                type: 'post',
+      //                data: {username:arr[i].value[0],orgname:arr[i].value[2],role:arr[i].value[1]},            
+      //                headers: {"Authorization":`Bearer ${data.token}`,"Content-Type":"application/x-www-form-urlencoded"},
+      //                success:(dataa) => {
+      //                   console.log(dataa.secret)
+      //                }
+      //             })
+      //          }
+      //       }
+      // })
+
+//       Username: impmng0
+
+// Orgname: importerorg
+
+// Secret: joiMloOoaUaY
+
+
+// Username: impact0
+
+// Orgname: importerorg
+
+// Secret: grtrJzhvrqMQ
+
+
+// Username: expmng0
+
+// Orgname: exporterorg
+
+// Secret: APAsljJIecoP
+
+
+// Username: expact0
+
+// Orgname: exporterorg
+
+// Secret: vhEJduBYDYSB
+
+
+// Username: impbankmng0
+
+// Orgname: importerbankorg
+
+// Secret: mvfabaUdKllI
+
+
+// Username: impbankact0
+
+// Orgname: importerbankorg
+
+// Secret: drlgljRIHcmf
+
+
+// Username: expbankmng0
+
+// Orgname: exporterbankorg
+
+// Secret: WnIlVMmLyOyI
+
+
+// Username: expbankact0
+
+// Orgname: exporterbankorg
+
+// Secret: kAhfSLIEjJLD
+
+
+// Username: carmng0
+
+// Orgname: carrierorg
+
+// Secret: IQTlIuYyNKxL
+
+
+// Username: caract0
+
+// Orgname: carrierorg
+
+// Secret: TAweKSmzIvjK
+
+
+// Username: regmng0
+
+// Orgname: regulatororg
+
+// Secret: DQiPmwAIQbOU
+
+
+// Username: regact0
+
+// Orgname: regulatororg
+
+// Secret: lMWaCQNUkomu
+
+      $(document).ready(()=>{
+         $.ajax({
+            url:'../login',
+            type: 'post',
+            data: {username:arr[0].value[0],orgname:arr[0].value[2],password:arr[0].value[3]},            
+            headers: {"Content-Type":"application/x-www-form-urlencoded"},
+            success:(data) => {
+               $.ajax({
+                  url:'../invoke/requestTrade',
+                  type: 'post',
+                  data: JSON.stringify({ccversion:'v0', args:[tradeID,'10-10-2040','Wood for Toys','100','02-06-2019',"California"]}),                  
+                  headers:{"Authorization":`Bearer ${data.token}`,"Content-Type":"application/json",},
+                  success:(data) => {
+                     console.log("requestTraded: "+data)
+                     $.ajax({
+                        url:'../login',
+                        type: 'post',
+                        data: {username:arr[1].value[0],orgname:arr[1].value[2],password:arr[1].value[3]},
+                        headers: {"Content-Type":"application/x-www-form-urlencoded"},
+                        success:(data) => {
+                           $.ajax({
+                              url:'../invoke/acceptTrade',
+                              type: 'post',
+                              data: JSON.stringify({ccversion:'v0', args:[tradeID,'importer','20', 'usd']}),                  
+                              headers:{"Authorization":`Bearer ${data.token}`,"Content-Type":"application/json",},                  
+                              success:(data) => {
+                                 console.log("acceptTrade: "+data)
+                                 $.ajax({
+                                    url:'../login',
+                                    type: 'post',
+                                    data: {username:arr[2].value[0],orgname:arr[2].value[2],password:arr[2].value[3]},
+                                    headers: {"Content-Type":"application/x-www-form-urlencoded"},
+                                    success:(data) => {
+                                       $.ajax({
+                                          url:'../invoke/requestLC',
+                                          type: 'post',
+                                          data: JSON.stringify({ccversion:'v0', args:[tradeID]}),
+                                          headers:{"Authorization":`Bearer ${data.token}`,"Content-Type":"application/json",},                  
+                                          success:(data) => {
+                                             console.log("requestLC: "+data)
+                                             $.ajax({
+                                                url:'../login',
+                                                type: 'post',
+                                                data: {username:arr[3].value[0],orgname:arr[3].value[2],password:arr[3].value[3]},
+                                                headers: {"Content-Type":"application/x-www-form-urlencoded"},
+                                                success:(data) => {
+                                                   $.ajax({
+                                                      url:'../invoke/issueLC',
+                                                      type: 'post',
+                                                      data: JSON.stringify({ccversion:'v0', args:[tradeID, '10-10-2019', '12-12-2019']}),
+                                                      headers:{"Authorization":`Bearer ${data.token}`,"Content-Type":"application/json",},                  
+                                                      success:(data) => {
+                                                         console.log("issueLC: "+data)
+                                                         $.ajax({
+                                                            url:'../login',
+                                                            type: 'post',
+                                                            data: {username:arr[4].value[0],orgname:arr[4].value[2],password:arr[4].value[3]},
+                                                            headers: {"Content-Type":"application/x-www-form-urlencoded"},
+                                                            success:(data) => {
+                                                               $.ajax({
+                                                                  url:'../invoke/acceptLC',
+                                                                  type: 'post',
+                                                                  data: JSON.stringify({ccversion:'v0', args:[tradeID]}),
+                                                                  headers:{"Authorization":`Bearer ${data.token}`,"Content-Type":"application/json",},                  
+                                                                  success:(data) => {
+                                                                     console.log("acceptLC: "+data)
+                                                                     $.ajax({
+                                                                        url:'../login',
+                                                                        type: 'post',
+                                                                        data: {username:arr[5].value[0],orgname:arr[5].value[2],password:arr[5].value[3]},
+                                                                        headers: {"Content-Type":"application/x-www-form-urlencoded"},
+                                                                        success:(data) => {
+                                                                           $.ajax({
+                                                                              url:'../invoke/requestEL',
+                                                                              type: 'post',
+                                                                              data: JSON.stringify({ccversion:'v0', args:[tradeID]}),
+                                                                              headers:{"Authorization":`Bearer ${data.token}`,"Content-Type":"application/json",},                  
+                                                                              success:(data) => {
+                                                                                 console.log("RequestEL: "+data)
+                                                                                 $.ajax({
+                                                                                    url:'../login',
+                                                                                    type: 'post',
+                                                                                    data: {username:arr[6].value[0],orgname:arr[6].value[2],password:arr[6].value[3]},
+                                                                                    headers: {"Content-Type":"application/x-www-form-urlencoded"},
+                                                                                    success:(data) => {
+                                                                                       $.ajax({
+                                                                                          url:'../invoke/issueEL',
+                                                                                          type: 'post',
+                                                                                          data: JSON.stringify({ccversion:'v0', args:[tradeID, '12-12-2019']}),
+                                                                                          headers:{"Authorization":`Bearer ${data.token}`,"Content-Type":"application/json",},                  
+                                                                                          success:(data) => {
+                                                                                             console.log("issueEL: "+data)
+                                                                                             $.ajax({
+                                                                                                url:'../login',
+                                                                                                type: 'post',
+                                                                                                data: {username:arr[7].value[0],orgname:arr[7].value[2],password:arr[7].value[3]},
+                                                                                                headers: {"Content-Type":"application/x-www-form-urlencoded"},
+                                                                                                success:(data) => {
+                                                                                                   $.ajax({
+                                                                                                      url:'../invoke/prepareShipment',
+                                                                                                      type: 'post',
+                                                                                                      data: JSON.stringify({ccversion:'v0', args:[tradeID]}),
+                                                                                                      headers:{"Authorization":`Bearer ${data.token}`,"Content-Type":"application/json",},                  
+                                                                                                      success:(data) => {
+                                                                                                         console.log("prepareshipment: "+data)
+                                                                                                         $.ajax({
+                                                                                                            url:'../login',
+                                                                                                            type: 'post',
+                                                                                                            data: {username:arr[8].value[0],orgname:arr[8].value[2],password:arr[8].value[3]},
+                                                                                                            headers: {"Content-Type":"application/x-www-form-urlencoded"},
+                                                                                                            success:(data) => {
+                                                                                                               $.ajax({
+                                                                                                                  url:'../invoke/requestCustomsDeclaration',
+                                                                                                                  type: 'post',
+                                                                                                                  data: JSON.stringify({ccversion:'v0', args:[tradeID,'10-10-2019','Wood for Toys','100','haha']}),                  
+                                                                                                                  headers:{"Authorization":`Bearer ${data.token}`,"Content-Type":"application/json",},                  
+                                                                                                                  success:(data) => {
+                                                                                                                     console.log("requestCustomsDeclaration: "+data)
+                                                                                                                     $.ajax({
+                                                                                                                        url:'../login',
+                                                                                                                        type: 'post',
+                                                                                                                        data: {username:arr[9].value[0],orgname:arr[9].value[2],password:arr[9].value[3]},
+                                                                                                                        headers: {"Content-Type":"application/x-www-form-urlencoded"},
+                                                                                                                        success:(data) => {
+                                                                                                                           $.ajax({
+                                                                                                                              url:'../invoke/acceptCustomsDeclaration',
+                                                                                                                              type: 'post',
+                                                                                                                              data: JSON.stringify({ccversion:'v0', args:[tradeID,'200']}),                  
+                                                                                                                              headers:{"Authorization":`Bearer ${data.token}`,"Content-Type":"application/json",},                  
+                                                                                                                              success:(data) => {
+                                                                                                                                 console.log("acceptCustomsDeclaration: "+data)
+                                                                                                                                 $.ajax({
+                                                                                                                                    url:'../login',
+                                                                                                                                    type: 'post',
+                                                                                                                                    data: {username:arr[10].value[0],orgname:arr[10].value[2],password:arr[10].value[3]},
+                                                                                                                                    headers: {"Content-Type":"application/x-www-form-urlencoded"},
+                                                                                                                                    success:(data) => {
+                                                                                                                                       $.ajax({
+                                                                                                                                          url:'../invoke/payForCustomsDeclaration',
+                                                                                                                                          type: 'post',
+                                                                                                                                          data: JSON.stringify({ccversion:'v0', args:[tradeID]}),                  
+                                                                                                                                          headers:{"Authorization":`Bearer ${data.token}`,"Content-Type":"application/json",},                  
+                                                                                                                                          success:(data) => {
+                                                                                                                                             console.log("payForCustomsDeclaration: "+data)
+                                                                                                                                             $.ajax({
+                                                                                                                                                url:'../login',
+                                                                                                                                                type: 'post',
+                                                                                                                                                data: {username:arr[11].value[0],orgname:arr[11].value[2],password:arr[11].value[3]},
+                                                                                                                                                headers: {"Content-Type":"application/x-www-form-urlencoded"},
+                                                                                                                                                success:(data) => {
+                                                                                                                                                   $.ajax({
+                                                                                                                                                      url:'../invoke/acceptShipmentAndIssueBL',
+                                                                                                                                                      type: 'post',
+                                                                                                                                                      data: JSON.stringify({ccversion:'v0', args:[tradeID,'10-10-2019','12-12-2019','Wood for Toys','2000','TOCOLLECT','Saigon','Osaka','Haiti']}),                  
+                                                                                                                                                      headers:{"Authorization":`Bearer ${data.token}`,"Content-Type":"application/json",},                  
+                                                                                                                                                      success:(data) => {
+                                                                                                                                                         console.log("acceptShipmentAndIssueBL: "+data)
+                                                                                                                                                         $.ajax({
+                                                                                                                                                            url:'../login',
+                                                                                                                                                            type: 'post',
+                                                                                                                                                            data: {username:arr[12].value[0],orgname:arr[12].value[2],password:arr[12].value[3]},
+                                                                                                                                                            headers: {"Content-Type":"application/x-www-form-urlencoded"},
+                                                                                                                                                            success:(data) => {
+                                                                                                                                                               $.ajax({
+                                                                                                                                                                        url:'../login',
+                                                                                                                                                                        type: 'post',
+                                                                                                                                                                        data: {username:arr[13].value[0],orgname:arr[13].value[2],password:arr[13].value[3]},
+                                                                                                                                                                        headers: {"Content-Type":"application/x-www-form-urlencoded"},
+                                                                                                                                                                        success:(data) => {
+                                                                                                                                                                           $.ajax({
+                                                                                                                                                                              url:'../invoke/requestPayment',
+                                                                                                                                                                              type: 'post',
+                                                                                                                                                                              data: JSON.stringify({ccversion:'v0', args:[tradeID]}),                  
+                                                                                                                                                                              headers:{"Authorization":`Bearer ${data.token}`,"Content-Type":"application/json",},                  
+                                                                                                                                                                              success:(data) => {
+                                                                                                                                                                                 console.log("requestPayment: "+data)
+                                                                                                                                                                                 $.ajax({
+                                                                                                                                                                                    url:'../login',
+                                                                                                                                                                                    type: 'post',
+                                                                                                                                                                                    data: {username:arr[14].value[0],orgname:arr[14].value[2],password:arr[14].value[3]},
+                                                                                                                                                                                    headers: {"Content-Type":"application/x-www-form-urlencoded"},
+                                                                                                                                                                                    success:(data) => {
+                                                                                                                                                                                       $.ajax({
+                                                                                                                                                                                          url:'../invoke/makePayment',
+                                                                                                                                                                                          type: 'post',
+                                                                                                                                                                                          data: JSON.stringify({ccversion:'v0', args:[tradeID]}),                  
+                                                                                                                                                                                          headers:{"Authorization":`Bearer ${data.token}`,"Content-Type":"application/json",},                  
+                                                                                                                                                                                          success:(data) => {
+                                                                                                                                                                                             console.log("makePayment: "+data)
+                                                                                                                                                                                             $.ajax({
+                                                                                                                                                                                                url:'../login',
+                                                                                                                                                                                                type: 'post',
+                                                                                                                                                                                                data: {username:arr[15].value[0],orgname:arr[15].value[2],password:arr[15].value[3]},
+                                                                                                                                                                                                headers: {"Content-Type":"application/x-www-form-urlencoded"},
+                                                                                                                                                                                                success:(data) => {
+                                                                                                                                                                                                   $.ajax({
+                                                                                                                                                                                                      url:'../invoke/updateShipmentLocation',
+                                                                                                                                                                                                      type: 'post',
+                                                                                                                                                                                                      data: JSON.stringify({ccversion:'v0', args:[tradeID,'California']}),                  
+                                                                                                                                                                                                      headers:{"Authorization":`Bearer ${data.token}`,"Content-Type":"application/json",},                  
+                                                                                                                                                                                                      success:(data) => {
+                                                                                                                                                                                                         console.log("updateShipmentLocation: "+data)
+                                                                                                                                                                                                      }
+                                                                                                                                                                                                   })
+                                                                                                                                                                                                }
+                                                                                                                                                                                             })
+                                                                                                                                                                                          }
+                                                                                                                                                                                       })
+                                                                                                                                                                                    }
+                                                                                                                                                                                 })
+                                                                                                                                                                              }
+                                                                                                                                                                           })
+                                                                                                                                                                        }
+                                                                                                                                                                     })
+                                                                                                                                                                  
+
+
+
+
+
+
+
+                                                                                                                                                            //    $.ajax({
+                                                                                                                                                            //       url:'../invoke/payForPreShippingFee',
+                                                                                                                                                            //       type: 'post',
+                                                                                                                                                            //       data: JSON.stringify({ccversion:'v0', args:[tradeID]}),                  
+                                                                                                                                                            //       headers:{"Authorization":`Bearer ${data.token}`,"Content-Type":"application/json",},                  
+                                                                                                                                                            //       success:(data) => {
+                                                                                                                                                            //          console.log("payforPreship: "+data)
+                                                                                                                                                            //          $.ajax({
+                                                                                                                                                            //             url:'../login',
+                                                                                                                                                            //             type: 'post',
+                                                                                                                                                            //             data: {username:arr[13].value[0],orgname:arr[13].value[2],password:arr[13].value[3]},
+                                                                                                                                                            //             headers: {"Content-Type":"application/x-www-form-urlencoded"},
+                                                                                                                                                            //             success:(data) => {
+                                                                                                                                                            //                $.ajax({
+                                                                                                                                                            //                   url:'../invoke/requestPayment',
+                                                                                                                                                            //                   type: 'post',
+                                                                                                                                                            //                   data: JSON.stringify({ccversion:'v0', args:[tradeID]}),                  
+                                                                                                                                                            //                   headers:{"Authorization":`Bearer ${data.token}`,"Content-Type":"application/json",},                  
+                                                                                                                                                            //                   success:(data) => {
+                                                                                                                                                            //                      console.log("requestPayment: "+data)
+                                                                                                                                                            //                      $.ajax({
+                                                                                                                                                            //                         url:'../login',
+                                                                                                                                                            //                         type: 'post',
+                                                                                                                                                            //                         data: {username:arr[14].value[0],orgname:arr[14].value[2],password:arr[14].value[3]},
+                                                                                                                                                            //                         headers: {"Content-Type":"application/x-www-form-urlencoded"},
+                                                                                                                                                            //                         success:(data) => {
+                                                                                                                                                            //                            $.ajax({
+                                                                                                                                                            //                               url:'../invoke/makePayment',
+                                                                                                                                                            //                               type: 'post',
+                                                                                                                                                            //                               data: JSON.stringify({ccversion:'v0', args:[tradeID]}),                  
+                                                                                                                                                            //                               headers:{"Authorization":`Bearer ${data.token}`,"Content-Type":"application/json",},                  
+                                                                                                                                                            //                               success:(data) => {
+                                                                                                                                                            //                                  console.log("makePayment: "+data)
+                                                                                                                                                            //                                  $.ajax({
+                                                                                                                                                            //                                     url:'../login',
+                                                                                                                                                            //                                     type: 'post',
+                                                                                                                                                            //                                     data: {username:arr[15].value[0],orgname:arr[15].value[2],password:arr[15].value[3]},
+                                                                                                                                                            //                                     headers: {"Content-Type":"application/x-www-form-urlencoded"},
+                                                                                                                                                            //                                     success:(data) => {
+                                                                                                                                                            //                                        $.ajax({
+                                                                                                                                                            //                                           url:'../invoke/updateShipmentLocation',
+                                                                                                                                                            //                                           type: 'post',
+                                                                                                                                                            //                                           data: JSON.stringify({ccversion:'v0', args:[tradeID,'California']}),                  
+                                                                                                                                                            //                                           headers:{"Authorization":`Bearer ${data.token}`,"Content-Type":"application/json",},                  
+                                                                                                                                                            //                                           success:(data) => {
+                                                                                                                                                            //                                              console.log("updateShipmentLocation: "+data)
+                                                                                                                                                            //                                              $.ajax({
+                                                                                                                                                            //                                              url:'../login',
+                                                                                                                                                            //                                              type: 'post',
+                                                                                                                                                            //                                              data: {username:arr[16].value[0],orgname:arr[16].value[2],password:arr[16].value[3]},
+                                                                                                                                                            //                                              headers: {"Content-Type":"application/x-www-form-urlencoded"},
+                                                                                                                                                            //                                              success:(data) => {
+                                                                                                                                                            //                                                 $.ajax({
+                                                                                                                                                            //                                                       url:'../invoke/requestPayment',
+                                                                                                                                                            //                                                       type: 'post',
+                                                                                                                                                            //                                                       data: JSON.stringify({ccversion:'v0', args:[tradeID]}),                  
+                                                                                                                                                            //                                                       headers:{"Authorization":`Bearer ${data.token}`,"Content-Type":"application/json",},                  
+                                                                                                                                                            //                                                       success:(data) => {
+                                                                                                                                                            //                                                          console.log("requestPayment: "+data)
+                                                                                                                                                            //                                                          $.ajax({
+                                                                                                                                                            //                                                          url:'../login',
+                                                                                                                                                            //                                                          type: 'post',
+                                                                                                                                                            //                                                          data: {username:arr[17].value[0],orgname:arr[17].value[2],password:arr[17].value[3]},
+                                                                                                                                                            //                                                          headers: {"Content-Type":"application/x-www-form-urlencoded"},
+                                                                                                                                                            //                                                          success:(data) => {
+                                                                                                                                                            //                                                             $.ajax({
+                                                                                                                                                            //                                                                   url:'../invoke/makePayment',
+                                                                                                                                                            //                                                                   type: 'post',
+                                                                                                                                                            //                                                                   data: JSON.stringify({ccversion:'v0', args:[tradeID]}),                  
+                                                                                                                                                            //                                                                   headers:{"Authorization":`Bearer ${data.token}`,"Content-Type":"application/json",},                  
+                                                                                                                                                            //                                                                   success:(data) => {
+                                                                                                                                                            //                                                                      console.log("makePayment: "+data)
+                                                                                                                                                            //                                                                   }
+                                                                                                                                                            //                                                             })
+                                                                                                                                                            //                                                          }
+                                                                                                                                                            //                                                          })
+                                                                                                                                                            //                                                       }
+                                                                                                                                                            //                                                 })
+                                                                                    
+                                                                                                                                                            //                                              }
+                                                                                                                                                            //                                           })
+                                                                                                                                                                                                      
+                                                                                                                                                            //                                        }
+                                                                                                                                                            //                                     })
+                                                                                                                                                            //                                  }
+                                                                                                                                                            //                               });
+                                                                                                                                                            //                            }
+                                                                                                                                                            //                         })
+                                                                                                                                                            //                      }
+                                                                                                                                                            //                   });
+                                                                                                                                                            //                }
+                                                                                                                                                            //             }) 
+                                                                                                                                                            //          }
+                                                                                                                                                            //       });
+                                                                                                                                                            //    }
+                                                                                                                                                            // })
+                                                                                                                                                         }
+                                                                                                                                                      });
+                                                                                                                                                   }
+                                                                                                                                                })
+                                                                                                                                             }
+                                                                                                                                          });
+                                                                                                                                       }
+                                                                                                                                    })
+                                                                                                                                 }
+                                                                                                                              });
+                                                                                                                           }
+                                                                                                                        })
+                                                                                                                     }
+                                                                                                                  });
+                                                                                                               }
+                                                                                                            })
+                                                                                                      }
+                                                                                                   });
+                                                                                                }
+                                                                                             })
+                                                                                          }
+                                                                                       });
+                                                                                    }
+                                                                                 })
+                                                                              }
+                                                                           });
+                                                                        }
+                                                                     })
+                                                                  }
+                                                               });
+                                                            }
+                                                         })
+                                                      }
+                                                   });
+                                                }
+                                             })
+                                          }
+                                       });
+                                    }
+                                 })
+                              }
+                           });
+                        }
+                     })
+                  }
+               });
+            }
+         })
+      }
+   })
+});
+   </script>
+</html>

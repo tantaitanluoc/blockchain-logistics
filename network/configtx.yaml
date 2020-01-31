@@ -40,6 +40,8 @@ Profiles:
                     - *ImporterOrg
                     - *CarrierOrg
                     - *RegulatorOrg
+                    - *ImporterbankOrg
+                    - *ExporterbankOrg
     FourOrgsTradeChannel:
         Consortium: TradeConsortium
         Application:
@@ -48,6 +50,8 @@ Profiles:
                 - *ExporterOrg
                 - *ImporterOrg
                 - *CarrierOrg
+                - *ImporterbankOrg
+                - *ExporterbankOrg
                 - *RegulatorOrg
             Capabilities:
                 <<: *ApplicationCapabilities
@@ -92,6 +96,23 @@ Organizations:
             - Host: peer0.exporterorg.logistics.com
               Port: 7051
 
+    - &ExporterbankOrg
+        # DefaultOrg defines the organization which is used in the sampleconfig
+        # of the fabric.git development environment
+        Name: ExporterbankOrgMSP
+
+        # ID to load the MSP definition as
+        ID: ExporterbankOrgMSP
+
+        MSPDir: crypto-config/peerOrganizations/exporterbankorg.logistics.com/msp
+
+        AnchorPeers:
+            # AnchorPeers defines the location of peers which can be used
+            # for cross org gossip communication.  Note, this value is only
+            # encoded in the genesis block in the Application section context
+            - Host: peer0.exporterbankorg.logistics.com
+              Port: 7051
+
     - &ImporterOrg
         # DefaultOrg defines the organization which is used in the sampleconfig
         # of the fabric.git development environment
@@ -107,6 +128,23 @@ Organizations:
             # for cross org gossip communication.  Note, this value is only
             # encoded in the genesis block in the Application section context
             - Host: peer0.importerorg.logistics.com
+              Port: 7051
+
+    - &ImporterbankOrg
+        # DefaultOrg defines the organization which is used in the sampleconfig
+        # of the fabric.git development environment
+        Name: ImporterbankOrgMSP
+
+        # ID to load the MSP definition as
+        ID: ImporterbankOrgMSP
+
+        MSPDir: crypto-config/peerOrganizations/importerbankorg.logistics.com/msp
+
+        AnchorPeers:
+            # AnchorPeers defines the location of peers which can be used
+            # for cross org gossip communication.  Note, this value is only
+            # encoded in the genesis block in the Application section context
+            - Host: peer0.importerbankorg.logistics.com
               Port: 7051
 
     - &CarrierOrg

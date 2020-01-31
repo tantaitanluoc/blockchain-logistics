@@ -31,7 +31,7 @@ var ClientUtils = require('./clientUtils.js');
 // Send chaincode invocation request to the orderer
 //
 // If 'userName' is not specified, we will default to 'admin' for the org 'userOrg'
-function invokeChaincode(userOrg, version, funcName, argList, userName, constants) {
+function invokeChaincode(userOrg, version, funcName, argList, userName, password, constants) {
 	console.log("invoke  just begin \n")
 	if (constants) {
 		Constants = constants;
@@ -75,7 +75,7 @@ function invokeChaincode(userOrg, version, funcName, argList, userName, constant
 		if (store) {
 			client.setStateStore(store);
 		}
-		return ClientUtils.getSubmitter(client, false, userOrg, userName);
+		return ClientUtils.getSubmitter(client, false, userOrg, userName, password);
 	}).then((user) => {
 
 		if (userName) {
@@ -148,6 +148,7 @@ function invokeChaincode(userOrg, version, funcName, argList, userName, constant
 
 		var proposal = results[1];
 		var all_good = true;
+		var err_message = "";
 		for(var i in proposalResponses) {
 			let one_good = false;
 			let proposal_response = proposalResponses[i];
@@ -159,6 +160,7 @@ function invokeChaincode(userOrg, version, funcName, argList, userName, constant
 				}
 			} else {
 				console.log('transaction proposal was bad from peer', targets[i].getUrl());
+				err_message = proposal_response.details;
 			}
 			all_good = all_good & one_good;
 		}
@@ -232,12 +234,12 @@ function invokeChaincode(userOrg, version, funcName, argList, userName, constant
 
 		} else {
 			console.log('Failed to send Proposal or receive valid response. Response null or status is not 200. exiting...');
-			throw new Error('Failed to send Proposal or receive valid response. Response null or status is not 200. exiting...');
+			throw new Error(err_message);
+			
 		}
 	}, (err) => {
-
-		console.log('Failed to send proposal due to error: ' + err.stack ? err.stack : err);
-		throw new Error('Failed to send proposal due to error: ' + err.stack ? err.stack : err);
+		// console.log('Failed to send proposal due to error: ' + err.stack ? err.stack : err);
+		// throw new Error('Failed to send proposal due to error: ' + err.stack ? err.stack : err);
 
 	}).then((response) => {
 
@@ -261,7 +263,6 @@ function invokeChaincode(userOrg, version, funcName, argList, userName, constant
 			orderer.close();
 		}
 	}, (err) => {
-
 		console.log('Failed to send transaction due to error: ' + err.stack ? err.stack : err);
 		throw new Error('Failed to send transaction due to error: ' + err.stack ? err.stack : err);
 

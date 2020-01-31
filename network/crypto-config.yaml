@@ -93,6 +93,26 @@ PeerOrgs:
     Users:
       Count: 2
   # ---------------------------------------------------------------------------
+  # ImporterbankOrg
+  # ---------------------------------------------------------------------------
+  - Name: ImporterbankOrg
+    Domain: importerbankorg.logistics.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 1
+  # ---------------------------------------------------------------------------
+  # ExporterbankOrg
+  # ---------------------------------------------------------------------------
+  - Name: ExporterbankOrg
+    Domain: exporterbankorg.logistics.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 1
+  # ---------------------------------------------------------------------------
   # CarrierOrg
   # ---------------------------------------------------------------------------
   - Name: CarrierOrg

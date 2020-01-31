@@ -127,3 +127,45 @@ services:
       - 10051:7051
       - 10053:7053
       - 10055:6060
+
+  peer0.importerbankorg.logistics.com:
+    container_name: peer0.importerbankorg.logistics.com
+    extends:
+      file: peer-base.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer0.importerbankorg.logistics.com
+      - CORE_PEER_ADDRESS=peer0.importerbankorg.logistics.com:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.importerbankorg.logistics.com:7051
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.importerbankorg.logistics.com:7051
+      - CORE_PEER_LOCALMSPID=ImporterbankOrgMSP
+    volumes:
+        - /var/run/:/host/var/run/
+        - ../crypto-config/peerOrganizations/importerbankorg.logistics.com/peers/peer0.importerbankorg.logistics.com/msp:/etc/hyperledger/fabric/msp
+        - ../crypto-config/peerOrganizations/importerbankorg.logistics.com/peers/peer0.importerbankorg.logistics.com/tls:/etc/hyperledger/fabric/tls
+        - peer0.importerbankorg.logistics.com:/var/hyperledger/production
+    ports:
+      - 11051:7051
+      - 11053:7053
+      - 11055:6060
+
+  peer0.exporterbankorg.logistics.com:
+    container_name: peer0.exporterbankorg.logistics.com
+    extends:
+      file: peer-base.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer0.exporterbankorg.logistics.com
+      - CORE_PEER_ADDRESS=peer0.exporterbankorg.logistics.com:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.exporterbankorg.logistics.com:7051
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.exporterbankorg.logistics.com:7051
+      - CORE_PEER_LOCALMSPID=ExporterbankOrgMSP
+    volumes:
+        - /var/run/:/host/var/run/
+        - ../crypto-config/peerOrganizations/exporterbankorg.logistics.com/peers/peer0.exporterbankorg.logistics.com/msp:/etc/hyperledger/fabric/msp
+        - ../crypto-config/peerOrganizations/exporterbankorg.logistics.com/peers/peer0.exporterbankorg.logistics.com/tls:/etc/hyperledger/fabric/tls
+        - peer0.exporterbankorg.logistics.com:/var/hyperledger/production
+    ports:
+      - 12051:7051
+      - 12053:7053
+      - 12055:6060

@@ -26,7 +26,7 @@ var ClientUtils = require('./clientUtils.js');
 //
 // Send chaincode query request to the peer
 //
-function queryChaincode(userOrg, version, funcName, argList, userName, constants) {
+function queryChaincode(userOrg, version, funcName, argList, userName, password, constants) {
 	if (constants) {
 		Constants = constants;
 	}
@@ -70,7 +70,7 @@ function queryChaincode(userOrg, version, funcName, argList, userName, constants
 	}).then((store) => {
 
 		client.setStateStore(store);
-		return ClientUtils.getSubmitter(client, false, userOrg, userName);
+		return ClientUtils.getSubmitter(client, false, userOrg, userName, password);
 
 	}).then((user) => {
 		if (userName) {
